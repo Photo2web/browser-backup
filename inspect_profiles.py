@@ -26,7 +26,7 @@ import json
 import os
 from pathlib import Path
 
-TOOL_VERSION = "0.0.1-phase0"
+TOOL_VERSION = "0.0.2-phase0"
 
 # ANNAHME: Startwerte aus PROJEKT.md §5.1 — werden nach dieser Ausgabe
 # gemeinsam mit dem Nutzer gegen die reale Ordnerstruktur verifiziert.
@@ -133,6 +133,71 @@ def print_profile_report(profile_path: Path, blacklist_top_level: set):
           f"  (gespart: {format_size(excluded_total)})")
 
 
+def print_flat_drilldown(profile_path: Path, subfolder_name: str):
+    """Listet die direkten Unterordner/-dateien von <profil>/<subfolder_name>
+    mit Groesse. Fuer Ordner, die selbst schon eine kleine, feste Anzahl
+    Unterordner haben (z.B. Chromium 'Service Worker', 'WebStorage') —
+    damit sehen wir, WELCHER Unterordner tatsaechlich die Groesse verursacht,
+    statt zu raten."""
+    base = profile_path / subfolder_name
+    if not base.exists():
+        print(f"      (kein Unterordner '{subfolder_name}' vorhanden)")
+        return
+
+    print(f"      Drilldown '{subfolder_name}/':")
+    try:
+        children = sorted(base.iterdir(), key=lambda p: entry_size(p), reverse=True)
+    except (OSError, PermissionError) as exc:
+        print(f"        ! nicht lesbar: {exc}")
+        return
+
+    for child in children:
+        size = entry_size(child)
+        kind = "D" if child.is_dir() else "F"
+        print(f"        {kind}  {format_size(size):>10}  {subfolder_name}/{child.name}")
+
+
+def print_aggregated_drilldown(profile_path: Path, subfolder_name: str):
+    """Fuer Ordner mit Pro-Origin-Struktur (Firefox 'storage/<default|permanent|
+    temporary>/<origin>/<art>') — aggregiert die Groesse ueber alle Origins
+    hinweg nach 'Art' (z.B. 'cache', 'idb', 'ls'), damit die Masse an
+    Einzel-Origin-Ordnern nicht die eigentliche Frage verdeckt: welche ART
+    von Unterdaten macht die Groesse aus."""
+    base = profile_path / subfolder_name
+    if not base.exists():
+        print(f"      (kein Unterordner '{subfolder_name}' vorhanden)")
+        return
+
+    print(f"      Drilldown '{subfolder_name}/' (aggregiert nach Art, ueber alle Origins):")
+    aggregated = {}
+    try:
+        for type_dir in base.iterdir():
+            if not type_dir.is_dir():
+                continue
+            try:
+                for origin_dir in type_dir.iterdir():
+                    if not origin_dir.is_dir():
+                        continue
+                    try:
+                        for kind_dir in origin_dir.iterdir():
+                            size = entry_size(kind_dir)
+                            aggregated[kind_dir.name] = aggregated.get(kind_dir.name, 0) + size
+                    except (OSError, PermissionError):
+                        continue
+            except (OSError, PermissionError):
+                continue
+    except (OSError, PermissionError) as exc:
+        print(f"        ! nicht lesbar: {exc}")
+        return
+
+    if not aggregated:
+        print("        (keine Unterdaten gefunden)")
+        return
+
+    for name, size in sorted(aggregated.items(), key=lambda kv: kv[1], reverse=True):
+        print(f"        {format_size(size):>10}  {subfolder_name}/*/*/{name}")
+
+
 def inspect_firefox():
     print("\n" + "=" * 70)
     print("FIREFOX")
@@ -189,6 +254,10 @@ def inspect_firefox():
         print(f"    Aufgeloest:   {resolved}")
         print(f"    Standard:     {'ja' if is_default else 'nein'}")
         print_profile_report(resolved, FIREFOX_BLACKLIST_PREVIEW)
+        # UNSICHER: 'storage/' ist laut PROJEKT.md §5.2 bewusst NICHT blacklisted
+        # (IndexedDB/Site-Storage). Drilldown dient nur der Kontrolle, ob darin
+        # trotzdem offensichtliche Cache-Unterordner stecken.
+        print_aggregated_drilldown(resolved, "storage")
 
 
 def inspect_chromium(display_name: str, user_data_path: Path):
@@ -231,6 +300,12 @@ def inspect_chromium(display_name: str, user_data_path: Path):
         print(f"    Klarname:    {display}")
         print(f"    Pfad:        {profile_path}")
         print_profile_report(profile_path, CHROMIUM_BLACKLIST_PREVIEW)
+        # UNSICHER: welcher Unterordner von 'Service Worker' bzw. 'WebStorage'
+        # tatsaechlich die Groesse verursacht — PROJEKT.md nennt nur
+        # 'Service Worker/CacheStorage' und 'Service Worker/ScriptCache' als
+        # Kandidaten, das wird hier gegen die Realitaet geprueft.
+        print_flat_drilldown(profile_path, "Service Worker")
+        print_flat_drilldown(profile_path, "WebStorage")
 
 
 def main():
