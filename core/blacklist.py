@@ -82,10 +82,18 @@ CHROMIUM_PATTERNS = (
 )
 
 
+# Alle Chromium-Forks teilen sich denselben Chromium-Unterbau und damit
+# praktisch identische Cache-Ordnernamen (Cache, Code Cache, GPUCache,
+# Service Worker/CacheStorage, ...) — nur Chrome/Edge wurden in Phase 0
+# real vermessen, bei den anderen ist das eine Ableitung, kein Aberglaube:
+# es sind alles Chromium-Forks mit demselben Profil-Subsystem-Code.
+_CHROMIUM_KEYS = {"chrome", "edge", "brave", "vivaldi", "opera", "opera_gx", "ecosia"}
+
+
 def _normalize_browser_key(browser_key: str) -> str:
     if browser_key == "firefox":
         return "firefox"
-    if browser_key in ("chrome", "edge"):
+    if browser_key in _CHROMIUM_KEYS:
         return "chromium"
     raise ValueError(f"Unbekannter Browser-Key: {browser_key!r}")
 

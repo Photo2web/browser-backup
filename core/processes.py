@@ -8,14 +8,24 @@ Nutzer immer die Kontrolle behaelt.
 
 import psutil
 
-# ANNAHME: Prozessnamen unter Windows fuer die drei unterstuetzten Browser.
-# Beta-/Nightly-Kanaele (z.B. "firefox-nightly.exe") werden damit NICHT
-# erkannt — fuer v1 ausreichend, da wir auch nur Standard-Installationspfade
-# fuer die Profil-Erkennung unterstuetzen.
+# ANNAHME: Prozessnamen unter Windows. Chrome/Edge/Firefox sind bekannt und
+# ueblich. Brave/Vivaldi sind gut dokumentierte Standardnamen. Opera/Opera GX
+# und Ecosia sind NICHT auf einer echten Installation verifiziert (siehe
+# core/browsers.py) — falls der Name nicht stimmt, wird der Browser hier
+# schlicht als "laeuft nicht" erkannt (harmlos, kein Absturz), nur der
+# Prozess-Warnhinweis vor dem Sichern greift dann nicht.
+# Beta-/Nightly-Kanaele (z.B. "firefox-nightly.exe") werden NICHT erkannt —
+# fuer v1 ausreichend, da wir auch nur Standard-Installationspfade fuer die
+# Profil-Erkennung unterstuetzen.
 _PROCESS_NAMES = {
     "firefox": {"firefox.exe"},
     "chrome": {"chrome.exe"},
     "edge": {"msedge.exe"},
+    "brave": {"brave.exe"},
+    "vivaldi": {"vivaldi.exe"},
+    "opera": {"opera.exe"},
+    "opera_gx": {"opera.exe"},
+    "ecosia": {"ecosia.exe"},
 }
 
 

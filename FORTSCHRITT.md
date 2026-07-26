@@ -108,10 +108,68 @@
     (haette ein echtes Profil ueberschrieben).
 
 ### Offen / empfohlen
-- Mike sollte `python main.py` selbst einmal interaktiv durchklicken
-  (Layout, Klick-Verhalten, Fenstergroesse) — von hier aus liess sich nur
-  der Aufbau pruefen, nicht der visuelle Eindruck.
 - Echter End-to-End-Restore-Test auf einem Zweitgeraet, sobald verfuegbar.
+
+## Nutzer-Feedback nach erstem GUI-Test (2026-07-26)
+
+**Status:** ✅ Umgesetzt.
+
+### Erledigt
+- **Dialog-Fehler behoben:** Prozess-Warnung-Dialog (`gui/dialogs.py`)
+  hatte eine fest geratene Groesse ("440x200"), die zu niedrig war —
+  der "Abbrechen"-Button ragte unter die sichtbare Kante. Jetzt wird die
+  Groesse aus `winfo_reqwidth()`/`winfo_reqheight()` berechnet (tatsaechlich
+  benoetigt: 573x330) und der Dialog mittig ueber dem Hauptfenster
+  positioniert. Ausserdem schliesst Escape den Dialog jetzt immer als
+  "Abbrechen", unabhaengig vom Button.
+- **Admin-Neustart bewusst NICHT eingebaut:** Mike vermutete, dass
+  "Permission denied"-Fehler durch Admin-Rechte umgangen werden koennten.
+  Klargestellt: die beobachteten Fehler waren Datei-**Sperren** durch den
+  laufenden Browser-Prozess (Sharing Violation), keine ACL-Restriktion —
+  Admin-Rechte helfen dagegen nicht, und ein "Als Admin starten"-Button
+  wuerde PROJEKT.md §2 ("keine Adminrechte noetig") widersprechen sowie
+  potenziell Datei-Besitzer-Probleme fuer das normale Konto erzeugen.
+  Mike hat dem zugestimmt, Feature entfaellt.
+- **Mehr Browser erkannt** (`core/browsers.py`): Opera, Opera GX, Brave,
+  Vivaldi, Ecosia zusaetzlich zu Firefox/Chrome/Edge. Alle nutzen denselben
+  generischen `detect_chromium()`-Mechanismus. Auf Mikes System real
+  verifiziert:
+  - Opera: `%APPDATA%\Opera Software\Opera Stable` (kein "User Data"-
+    Zwischenordner, anders als die uebrigen Chromium-Forks!). Dabei zwei
+    Bugs gefunden und behoben: leerer `info_cache`-Name fiel nicht auf den
+    Ordnernamen zurueck (`.get("name") or folder_name` statt `.get("name",
+    folder_name)`), und ein verwaister `info_cache`-Eintrag ohne
+    existierenden Profilordner wurde als Phantom-Profil angezeigt (jetzt
+    per Existenz-Check gefiltert).
+  - Ecosia: urspruengliche Annahme `%LOCALAPPDATA%\Ecosia\User Data` war
+    FALSCH — realer Ordner heisst `EcosiaBrowser`. Per PowerShell-Suche auf
+    Mikes System gefunden und korrigiert.
+  - Brave/Vivaldi/Opera GX: NICHT verifiziert (nicht auf Mikes System
+    installiert), gut dokumentierte Standardpfade, als `# UNSICHER`
+    markiert falls sich das jemals als falsch herausstellt.
+  - `core/blacklist.py`: alle neuen Browser-Keys als "chromium" behandelt
+    (gleicher Chromium-Unterbau -> gleiche Cache-Ordnernamen).
+  - `core/processes.py`: Prozessnamen fuer alle neuen Browser ergaenzt
+    (opera.exe, brave.exe, vivaldi.exe, ecosia.exe — teils ANNAHME).
+- **Sichern-Tab auf Checkliste umgebaut** (`gui/backup_tab.py`): statt
+  Browser-/Profil-Dropdown jetzt eine Liste aller gefundenen Browser-
+  Profil-Kombinationen mit Checkbox + "Alle auswaehlen"/"Alle abwaehlen".
+  Ausgewaehlte Profile werden nacheinander im selben Worker-Thread
+  gesichert (je eine eigene ZIP-Datei), Log/Fortschritt zeigen
+  `[i/n] Browser / Profil: ...`, Abschluss-Dialog fasst alle Ergebnisse
+  zusammen (Gesamtdateien, gesperrte Dateien, Chromium-Hinweis falls
+  mindestens ein Chromium-Browser dabei war). Prozess-Check laeuft pro
+  betroffenem Browser nur einmal, auch wenn mehrere seiner Profile
+  ausgewaehlt sind.
+- Ende-zu-Ende getestet (echte Dateien, kein Restore): Firefox 'default'
+  (47 B) + Chrome 'Profil 1' (11,8 MB nach Cache-Ausschluss) gleichzeitig
+  ausgewaehlt -> zwei korrekte ZIP-Dateien, korrekte Sammel-Zusammenfassung
+  (637 Dateien gesamt, Chromium-Hinweis erschien wie erwartet).
+
+### Offen / empfohlen
+- Mike sollte `python main.py` mit der neuen Checkliste (inkl. Opera/
+  Ecosia) einmal selbst durchklicken.
+- Brave/Vivaldi/Opera GX bei Gelegenheit gegenpruefen, falls verfuegbar.
 
 ### Auf v1.1 verschoben (bewusst, nicht vergessen)
 - Restore: "Neues Profil anlegen" (Firefox `profiles.ini`-Eintrag +

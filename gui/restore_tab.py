@@ -311,7 +311,7 @@ class RestoreTab(ctk.CTkFrame):
             summary_lines.append(f"Gesperrte/uebersprungene Dateien: {len(result.locked_files)}")
         if result.safety_backup_path:
             summary_lines.append(f"Sicherheits-Backup: {result.safety_backup_path}")
-        if browser.key in ("chrome", "edge"):
+        if browser.local_state_path is not None:  # jeder Chromium-Fork, nicht nur Chrome/Edge
             summary_lines.append("")
             summary_lines.append(CHROMIUM_PASSWORD_HINWEIS)
 
