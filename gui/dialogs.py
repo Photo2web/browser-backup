@@ -23,10 +23,7 @@ def ask_process_warning(parent, browser_display_name: str) -> str:
 
     dialog = ctk.CTkToplevel(root)
     dialog.title("Browser laeuft")
-    dialog.geometry("440x200")
-    dialog.resizable(False, False)
     dialog.transient(root)
-    dialog.grab_set()
 
     ctk.CTkLabel(
         dialog,
@@ -57,6 +54,22 @@ def ask_process_warning(parent, browser_display_name: str) -> str:
         button_frame, text="Abbrechen", fg_color="gray30", command=lambda: choose("abbrechen")
     ).pack(fill="x", pady=2)
 
+    # UNSICHER (behoben): eine fest geratene Groesse ("440x200") war zu
+    # niedrig fuer Label + 3 Buttons, die Buttons ragten unter die
+    # sichtbare Dialogkante. Stattdessen wird die Groesse aus dem
+    # tatsaechlich benoetigten Platz berechnet — funktioniert unabhaengig
+    # von Schriftgroesse/DPI-Skalierung.
+    dialog.update_idletasks()
+    width = max(440, dialog.winfo_reqwidth())
+    height = dialog.winfo_reqheight()
+
+    root.update_idletasks()
+    x = root.winfo_x() + (root.winfo_width() - width) // 2
+    y = root.winfo_y() + (root.winfo_height() - height) // 2
+    dialog.geometry(f"{width}x{height}+{max(x, 0)}+{max(y, 0)}")
+    dialog.resizable(False, False)
+
+    dialog.grab_set()
     dialog.protocol("WM_DELETE_WINDOW", lambda: choose("abbrechen"))
     root.wait_window(dialog)
     return result["choice"]
