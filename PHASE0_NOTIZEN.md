@@ -49,8 +49,72 @@ Ausgabe finalisiert.
   Anwendungsfall ab (Wechsel auf neuen PC, Wiederherstellung nach Neuinstallation
   ins frische Standardprofil).
 
-**Status:** Empfehlung — wartet auf Bestaetigung durch Mike, bevor GUI (Phase 2)
-die Radio-Option "neu anlegen" ggf. ausblendet/deaktiviert.
+**Status:** ✅ Bestaetigt von Mike (2026-07-26). v1 unterstuetzt beim Restore
+nur "vorhandenes Profil ueberschreiben". "Neues Profil anlegen" wird als
+Punkt fuer v1.1 in `FORTSCHRITT.md` gefuehrt.
+
+## Finale Blacklist (aus echten Messungen auf Mikes System abgeleitet)
+
+Quelle: zwei Laeufe von `inspect_profiles.py` (Top-Level + Drilldown fuer
+`storage`, `Service Worker`, `WebStorage`) am 2026-07-26.
+
+### Firefox (relativ zum Profilordner)
+
+Top-Level, bestaetigt vorhanden:
+- `crashes/` (66 B), `datareporting/` (6,3 MB), `minidumps/` (0 B),
+  `parent.lock` (0 B), `shader-cache/` (693,3 KB)
+
+Top-Level, auf diesem System NICHT vorhanden, aber als Kompatibilitaets-
+Eintrag fuer aeltere Firefox-Versionen beibehalten (Firefox verlagert den
+Haupt-Cache seit einigen Versionen nach `%LOCALAPPDATA%`, ausserhalb des
+hier gesicherten Roaming-Profils):
+- `cache2/`, `startupCache/`, `thumbnails/`, `OfflineCache/`, `.parentlock`, `lock`
+
+**Neu, per Pfadmuster (nicht Top-Level!) — durch Drilldown bestaetigt:**
+- `storage/*/*/cache` (Muster: `storage/<default|permanent|temporary>/<origin>/cache`)
+  → 183,1 MB von 230,2 MB im `storage`-Ordner sind dieser Cache-Typ.
+  Die Geschwister `idb`, `ls`, `fs`, `.metadata-v2` bleiben **erhalten**
+  (echte Website-/Login-Daten, keine Cache-Muster).
+
+**Bewusst NICHT ausgeschlossen (konservative Entscheidung, siehe unten):**
+- `gmp-widevinecdm/` (21,6 MB), `gmp-gmpopenh264/` (1,1 MB) — DRM-/Codec-
+  Plugins, redownloadbar, aber nicht cache-benannt.
+
+### Chromium — Chrome/Edge (relativ zum Profilordner)
+
+Top-Level, bestaetigt vorhanden:
+- `Cache/`, `Code Cache/`, `GPUCache/`
+
+Top-Level, neu entdeckt (in PROJEKT.md-Startliste gefehlt, eindeutig
+cache-benannt):
+- `DawnGraphiteCache/`, `DawnWebGPUCache/`
+
+Top-Level, auf aktuellen Chrome/Edge-Versionen NICHT mehr vorhanden, aber
+als Kompatibilitaets-Eintrag fuer aeltere Versionen beibehalten:
+- `GrShaderCache/`, `ShaderCache/`, `Media Cache/`, `Application Cache/`,
+  `component_crx_cache/`, `Crashpad/`
+
+**Neu, per Pfadmuster — durch Drilldown bestaetigt:**
+- `Service Worker/CacheStorage/` (265,3 MB von 274,6 MB bei aktivem Profil,
+  75,7 MB von 80,8 MB bei Edge — der dominante Anteil)
+- `Service Worker/ScriptCache/` (9,3 MB / 5,0 MB)
+- `Service Worker/Database/` bleibt **erhalten** (Service-Worker-
+  Registrierungen, nur ~100 KB, essenziell fuer Funktion)
+
+**Bewusst NICHT ausgeschlossen (konservative Entscheidung):**
+- `WebStorage/` — bei Mikes aktivem Chrome-Profil 326,7 MB in einem
+  einzigen Origin-Unterordner. Nicht cache-benannt, Semantik nicht
+  abschliessend verifiziert (quota-verwaltete Site-Storage, koennte auch
+  echte IndexedDB-aehnliche Nutzung einer PWA sein). Groesster Posten,
+  der Backups aufblaeht — als v1.1-Kandidat vermerkt.
+- `load_statistics.db` (+ `-wal`/`-shm`, ~36,5 MB bei Edge) — Chromiums
+  Prefetch-Vorhersage-Datenbank, regenerierbar, aber nicht cache-benannt.
+- `EntityExtraction/` (8,4 MB, Edge-spezifisch) — Einordnung unklar.
+
+**Entscheidung (2026-07-26, Mike):** Konservative Blacklist fuer v1 — nur
+eindeutig als Cache identifizierbare Ordner/Muster ausschliessen. Die vier
+oben genannten unklaren, teils grossen Ordner bleiben vorerst im Backup;
+Grund und Groessenangabe stehen in `FORTSCHRITT.md` als v1.1-Kandidaten.
 
 ## Sonstige Annahmen aus dieser Phase (siehe auch `# ANNAHME:` im Code)
 
