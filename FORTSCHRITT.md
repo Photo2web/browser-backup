@@ -203,6 +203,67 @@
 - Echter Restore-Test mit der neuen Mehrfachauswahl auf einem Zweitgeraet,
   sobald verfuegbar (siehe "Zurueckgestellt" oben).
 
+## Phase 3 — Feinschliff & Packaging
+
+**Status:** ✅ Abgeschlossen (2026-07-26).
+
+### Erledigt
+- **Fehlerbehandlung nachgeschaerft** (gezielte Suche nach Stellen, an
+  denen Sperren/Rechte-Fehler NICHT abgefangen wurden):
+  - `core/backup.py`: `os.walk()` ignoriert per Default JEDEN Fehler beim
+    Auflisten eines gesperrten/unlesbaren Unterordners lautlos — ohne
+    Eintrag im Ergebnis. Jetzt per `onerror`-Callback in dieselbe
+    `locked_files`-Liste eingetragen wie einzelne Datei-Fehler.
+  - `core/restore.py`: `dest_path.parent.mkdir()` lag AUSSERHALB des
+    try-Blocks — ein einzelner Ordner-Rechtefehler haette die komplette
+    Wiederherstellung abgebrochen statt nur die eine Datei zu
+    ueberspringen. In den try-Block verschoben, zusaetzlich
+    `zipfile.BadZipFile` mit abgefangen.
+  - `gui/restore_tab.py`: Beim Einlesen einer beschaedigten/keiner echten
+    ZIP-Datei fing der Code nur `(KeyError, OSError)` ab — `read_manifest()`
+    kann aber auch `zipfile.BadZipFile` oder `json.JSONDecodeError` werfen.
+    Erweitert; getestet mit einer absichtlich kaputten ZIP-Datei (keine
+    Exception mehr, saubere Log-Meldung).
+  - Alle drei Fixes mit gezielten Tests verifiziert (siehe Commit-Historie).
+- **README.md** geschrieben: Funktionsuebersicht, Bedienung (Sichern +
+  Wiederherstellen Schritt fuer Schritt), deutlicher Chromium-Passwort-
+  Abschnitt ganz oben, bekannte v1-Einschraenkungen, Projektstruktur,
+  Build-Anleitung.
+- **PyInstaller-Build eingerichtet und GETESTET** (nicht nur dokumentiert):
+  - `requirements-dev.txt` (zusaetzlich zu `requirements.txt`: `pyinstaller`).
+  - `build.ps1` — Wrapper-Skript mit Vorab-Check, ob PyInstaller installiert ist.
+  - Exakter Build-Befehl:
+    ```
+    pyinstaller --onefile --windowed --name BrowserBackup --collect-all customtkinter main.py
+    ```
+    `--collect-all customtkinter` ist noetig, weil customtkinter eigene
+    Theme-/Asset-Dateien ausliefert, die PyInstaller sonst nicht automatisch
+    mitnimmt (sonst Absturz mit Theme-Fehler). `psutil` braucht keinen
+    Extra-Flag (eingebauter PyInstaller-Hook).
+  - Build tatsaechlich ausgefuehrt: `dist\BrowserBackup.exe` (~31 MB, wegen
+    mitgebundelter customtkinter-Abhaengigkeiten wie Pillow/numpy) erzeugt.
+  - `.exe` real gestartet und geprueft, dass der Prozess stabil laeuft
+    (kein Sofort-Absturz durch fehlende Assets) — dann sauber beendet.
+
+### Auf v1.1 verschoben (final, siehe auch oben)
+- Restore: "Neues Profil anlegen" (Firefox `profiles.ini` + Chromium
+  `info_cache`-Erzeugung).
+- Selektives Mergen einzelner DPAPI-/`os_crypt`-Keys bei Chromium-Restore.
+- Pruefen, ob `WebStorage/`, `gmp-widevinecdm/`, `gmp-gmpopenh264/`,
+  `load_statistics.db`, `EntityExtraction/` doch ausgeschlossen werden
+  sollten (aktuell bewusst konservativ NICHT ausgeschlossen).
+- Brave/Vivaldi/Opera GX auf einer echten Installation verifizieren.
+- Echter End-to-End-Restore-Test (Sicherheitsgruende, siehe oben) —
+  empfohlen auf einem neuen/leeren Laptop, sobald verfuegbar.
+- Admin-Neustart-Option bewusst NICHT eingebaut (siehe Nutzer-Feedback-
+  Abschnitt oben) — loest das eigentliche Sperr-Problem nicht.
+
+### Fuer Mike zum Ausprobieren
+- `python main.py` — Quellcode-Version.
+- `dist\BrowserBackup.exe` — bereits gebauter, portabler Build (kann direkt
+  auf einen USB-Stick oder einen anderen PC kopiert werden, um den
+  Wiederherstellen-Test aus "Zurueckgestellt" durchzufuehren).
+
 ### Auf v1.1 verschoben (bewusst, nicht vergessen)
 - Restore: "Neues Profil anlegen" (Firefox `profiles.ini`-Eintrag +
   Chromium `info_cache`-Erzeugung) — Risiko eines beschaedigten Profils
