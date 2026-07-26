@@ -46,12 +46,22 @@ def _sanitize_filename_part(text: str) -> str:
     return cleaned.strip()
 
 
-def _iter_profile_files(profile_root: Path, browser_key: str, exclude_cache: bool):
+def _iter_profile_files(profile_root: Path, browser_key: str, exclude_cache: bool, walk_errors: list[str]):
     """Liefert (absoluter_pfad, relativer_posix_pfad) fuer alle zu sichernden
     Dateien im Profil. Blacklist-Ordner werden beim Durchlaufen komplett
     uebersprungen (kein Abstieg in Cache-Ordner) statt nachtraeglich
-    gefiltert zu werden — spart Zeit bei grossen Cache-Ordnern."""
-    for dirpath, dirnames, filenames in os.walk(profile_root, topdown=True):
+    gefiltert zu werden — spart Zeit bei grossen Cache-Ordnern.
+
+    walk_errors: os.walk() ignoriert per Default JEDEN Fehler beim Auflisten
+    eines Unterordners lautlos (z.B. gesperrter/unlesbarer Ordner) — ohne
+    onerror-Callback wuerde ein solcher Ordner spurlos fehlen, ohne dass es
+    im Ergebnis auftaucht. Der Callback traegt das stattdessen hier ein.
+    """
+
+    def _on_walk_error(exc: OSError) -> None:
+        walk_errors.append(f"{exc.filename} ({exc.strerror or exc})")
+
+    for dirpath, dirnames, filenames in os.walk(profile_root, topdown=True, onerror=_on_walk_error):
         current_rel = Path(dirpath).relative_to(profile_root)
 
         if exclude_cache:
@@ -101,11 +111,12 @@ def backup_profile(
     zip_name = f"browserbackup_{browser.key}_{profile_name_part}_{timestamp}.zip"
     zip_path = dest_dir / zip_name
 
-    files = list(_iter_profile_files(profile.path, browser.key, exclude_cache))
+    locked_files: list[str] = []
+
+    files = list(_iter_profile_files(profile.path, browser.key, exclude_cache, locked_files))
     has_local_state_file = bool(browser.local_state_path and browser.local_state_path.exists())
     total = len(files) + (1 if has_local_state_file else 0)
 
-    locked_files: list[str] = []
     written = 0
 
     if progress_callback:

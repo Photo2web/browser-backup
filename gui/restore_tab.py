@@ -12,7 +12,9 @@ Es gibt deshalb bewusst KEINE Radio-Auswahl "neu anlegen" — nur ein
 Hinweistext, dass das in einer spaeteren Version folgt.
 """
 
+import json
 import queue
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from tkinter import filedialog
@@ -147,7 +149,10 @@ class RestoreTab(ctk.CTkFrame):
             zip_path = Path(path_str)
             try:
                 manifest = read_manifest(zip_path)
-            except (KeyError, OSError) as exc:
+            except (KeyError, OSError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
+                # z.B. beschaedigte/keine echte ZIP-Datei oder fehlendes/
+                # kaputtes Manifest — einzelne Datei ueberspringen statt
+                # die ganze Auswahl abzubrechen.
                 self._log(f"! Manifest von {zip_path.name} konnte nicht gelesen werden: {exc}")
                 continue
 

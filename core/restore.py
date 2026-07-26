@@ -100,15 +100,19 @@ def restore_profile(
         for member in members:
             rel = member[len("profile/"):]
             dest_path = target_profile.path / rel
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
             try:
+                # UNSICHER/erwarteter Fall: Zielordner/-datei koennte noch
+                # durch den Browser gesperrt sein (falls der Prozess-Check
+                # umgangen oder der Browser zwischenzeitlich neu gestartet
+                # wurde) oder Rechte fehlen. mkdir() bewusst INNERHALB des
+                # try-Blocks — sonst wuerde ein einzelner Ordnerfehler die
+                # komplette Wiederherstellung abbrechen statt nur diese Datei
+                # zu ueberspringen (siehe PROJEKT.md §8.8, analog fuer Restore).
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(member) as src, open(dest_path, "wb") as dst:
                     dst.write(src.read())
                 restored += 1
-            except (OSError, PermissionError) as exc:
-                # UNSICHER/erwarteter Fall: Zieldatei koennte noch durch den
-                # Browser gesperrt sein, falls der Prozess-Check umgangen
-                # oder der Browser zwischenzeitlich neu gestartet wurde.
+            except (OSError, PermissionError, zipfile.BadZipFile) as exc:
                 result.locked_files.append(f"{rel} ({exc})")
 
             if progress_callback:
