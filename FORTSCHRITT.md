@@ -27,12 +27,45 @@
   Cache identifizierte Ordner/Muster).
 - Git-Repository initialisiert, Phase 0 committet.
 
-### Offen (fuer Phase 1)
-- `core/blacklist.py` mit der oben genannten finalen Blacklist inkl.
-  Pfadmuster-Unterstuetzung (nicht nur Top-Level-Namen) implementieren.
-- `core/browsers.py`, `core/backup.py`, `core/restore.py`,
-  `core/processes.py` gemaess PROJEKT.md §Phase 1 bauen.
-- Manuelle Testlaeufe fuer `browsers.py` und `backup.py`.
+## Phase 1 — Kernlogik (ohne GUI)
+
+**Status:** ✅ Abgeschlossen (2026-07-26).
+
+### Erledigt
+- `core/__init__.py`: Paket-Grundlage + `TOOL_VERSION`-Konstante.
+- `core/browsers.py`: `Browser`/`Profile`-Dataclasses, Erkennung von
+  Firefox (`profiles.ini`) und Chromium (`Local State` → `info_cache`).
+  Manuell getestet via `python -m core.browsers` — hat alle 2 Firefox-,
+  2 Chrome- und 1 Edge-Profil korrekt erkannt (deckt sich mit Phase-0-Messung).
+- `core/blacklist.py`: finale Blacklist aus Phase 0 implementiert, inkl.
+  Pfadmuster-Unterstuetzung (`storage/*/*/cache`,
+  `Service Worker/CacheStorage`, `Service Worker/ScriptCache`) via `fnmatch`.
+- `core/backup.py`: `backup_profile()` — ZIP mit `ZIP_DEFLATED`, wendet
+  Blacklist beim Durchlaufen an (kein Abstieg in ausgeschlossene Ordner,
+  nicht nachtraeglich gefiltert), erzeugt `backup_manifest.json`, nimmt bei
+  Chromium die gemeinsame `Local State` mit auf. Gesperrte/unlesbare
+  Dateien werden einzeln abgefangen (kein Abbruch) und im `BackupResult`
+  gesammelt. Fortschritt ueber Callback `(aktuell, gesamt, meldung)`.
+  Manuell getestet via `python -m core.backup` (kleines Profil) UND
+  gezielt gegen das grosse `default-release`-Profil (316 MB, Firefox lief
+  dabei) — 554 gesperrte Dateien wurden korrekt einzeln abgefangen, 101
+  Dateien gesichert, kein Absturz. Reale Bestaetigung des in PROJEKT.md
+  §8.8 geforderten Verhaltens.
+- `core/restore.py`: `restore_profile()` + `read_manifest()` — entpackt
+  `profile/`-Eintraege ins Ziel-Profil (ueberschreibt vorhandene Dateien),
+  optionales Sicherheits-Backup des Ziels (per Wiederverwendung von
+  `backup_profile()`, Cache dabei bewusst NICHT ausgeschlossen), Local
+  State nur bei explizitem `restore_local_state=True` inkl. eigenem
+  Backup als `Local State.bak_<timestamp>` (PROJEKT.md §6.3). Unterstuetzt
+  nur "vorhandenes Profil ueberschreiben" (v1-Scope, siehe unten).
+- `core/processes.py`: `find_running_processes()`, `is_browser_running()`,
+  `terminate_browser()` (erfordert `confirm=True`) via `psutil`.
+  Manuell getestet via `python -m core.processes`.
+
+### Offen (fuer Phase 2)
+- customtkinter-GUI: Sichern-/Wiederherstellen-Tabs, Worker-Thread +
+  Queue/`after()` fuer Fortschritt, Prozess-Check mit Warnung/Beenden-Angebot,
+  Chromium-Passwort-Hinweis im Abschluss-Dialog.
 
 ### Auf v1.1 verschoben (bewusst, nicht vergessen)
 - Restore: "Neues Profil anlegen" (Firefox `profiles.ini`-Eintrag +
