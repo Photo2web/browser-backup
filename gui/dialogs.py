@@ -38,7 +38,7 @@ def ask_process_warning(parent, browser_display_name: str) -> str:
     ).pack(padx=16, pady=(16, 12), fill="x")
 
     button_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-    button_frame.pack(padx=16, pady=(0, 16), fill="x")
+    button_frame.pack(padx=16, pady=(0, 8), fill="x")
 
     def choose(value):
         result["choice"] = value
@@ -71,6 +71,10 @@ def ask_process_warning(parent, browser_display_name: str) -> str:
 
     dialog.grab_set()
     dialog.protocol("WM_DELETE_WINDOW", lambda: choose("abbrechen"))
+    # Escape wirkt immer als "Abbrechen" — unabhaengig davon, ob der
+    # Abbrechen-Button gerade sichtbar/anklickbar ist.
+    dialog.bind("<Escape>", lambda _event: choose("abbrechen"))
+    dialog.focus_set()
     root.wait_window(dialog)
     return result["choice"]
 
