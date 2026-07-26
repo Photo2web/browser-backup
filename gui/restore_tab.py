@@ -1,19 +1,25 @@
 """
 restore_tab.py — "Wiederherstellen"-Tab der BrowserBackup-GUI.
 
+Es koennen mehrere Backup-ZIPs auf einmal ausgewaehlt werden (z.B. wenn
+jedes Profil einzeln gesichert wurde, siehe gui/backup_tab.py). Jede ZIP
+wird automatisch anhand ihres Manifests (Browser + Quell-Profilname) einem
+installierten Ziel-Browser/-Profil zugeordnet; ueber eine Checkliste kann
+der Nutzer gezielt einzelne oder alle davon wiederherstellen.
+
 v1-Scope (bestaetigt in Phase 0): nur "vorhandenes Profil ueberschreiben".
 Es gibt deshalb bewusst KEINE Radio-Auswahl "neu anlegen" — nur ein
-Hinweistext, dass das in einer spaeteren Version folgt (statt einer
-Option, die je nach Browser inkonsistent funktionieren wuerde).
+Hinweistext, dass das in einer spaeteren Version folgt.
 """
 
 import queue
+from dataclasses import dataclass
 from pathlib import Path
 from tkinter import filedialog
 
 import customtkinter as ctk
 
-from core.browsers import Browser, detect_browsers
+from core.browsers import Browser, Profile, detect_browsers
 from core.processes import is_browser_running, terminate_browser
 from core.restore import read_manifest, restore_profile
 
@@ -27,71 +33,76 @@ CHROMIUM_PASSWORD_HINWEIS = (
 )
 
 
+@dataclass
+class _Candidate:
+    """Eine ausgewaehlte ZIP-Datei + der dazu automatisch ermittelte
+    Ziel-Browser (falls installiert). Das Ziel-Profil kann der Nutzer per
+    Dropdown noch aendern (profile_menu ist None, wenn browser nicht
+    installiert ist — dann gibt es nichts zum Wiederherstellen)."""
+
+    zip_path: Path
+    manifest: dict
+    browser: Browser | None
+    var: object = None            # ctk.BooleanVar
+    profile_menu: object = None   # ctk.CTkOptionMenu, nur falls browser gefunden
+
+
 class RestoreTab(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
 
         self.browsers: list[Browser] = detect_browsers()
         self.worker = Worker()
-        self.zip_path: Path | None = None
-        self.manifest: dict | None = None
+        self.candidates: list[_Candidate] = []
 
         self._build_ui()
 
     # -- UI-Aufbau -----------------------------------------------------
 
     def _build_ui(self):
-        top = ctk.CTkFrame(self)
-        top.pack(fill="x", pady=(0, 12))
-        top.grid_columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(top, text="Backup-ZIP:").grid(row=0, column=0, sticky="w", padx=12, pady=8)
-        zip_frame = ctk.CTkFrame(top, fg_color="transparent")
-        zip_frame.grid(row=0, column=1, sticky="ew", padx=12, pady=8)
-        zip_frame.grid_columnconfigure(0, weight=1)
-
-        self.zip_entry = ctk.CTkEntry(zip_frame, placeholder_text="Noch keine ZIP ausgewaehlt")
-        self.zip_entry.configure(state="disabled")
-        self.zip_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(zip_frame, text="Auswaehlen ...", width=110, command=self._choose_zip).grid(
-            row=0, column=1, padx=(8, 0)
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x")
+        ctk.CTkButton(header, text="Backup-ZIPs auswaehlen ...", command=self._choose_zips).pack(
+            side="left", padx=(0, 8)
+        )
+        ctk.CTkButton(header, text="Alle auswaehlen", width=120, command=self._select_all).pack(
+            side="left", padx=4
+        )
+        ctk.CTkButton(header, text="Alle abwaehlen", width=120, command=self._select_none).pack(
+            side="left", padx=4
         )
 
-        ctk.CTkLabel(top, text="Manifest:").grid(row=1, column=0, sticky="nw", padx=12, pady=8)
-        self.manifest_box = ctk.CTkTextbox(top, height=120)
-        self.manifest_box.configure(state="disabled")
-        self.manifest_box.grid(row=1, column=1, sticky="ew", padx=12, pady=8)
+        self.list_frame = ctk.CTkScrollableFrame(self, height=200, label_text="Ausgewaehlte Backups")
+        self.list_frame.pack(fill="x", pady=(8, 12))
+        self._refresh_placeholder()
 
-        ctk.CTkLabel(top, text="Ziel-Browser:").grid(row=2, column=0, sticky="w", padx=12, pady=8)
-        self.browser_menu = ctk.CTkOptionMenu(top, values=["-"], command=self._on_browser_change)
-        self.browser_menu.grid(row=2, column=1, sticky="ew", padx=12, pady=8)
-
-        ctk.CTkLabel(top, text="Ziel-Profil:").grid(row=3, column=0, sticky="w", padx=12, pady=8)
-        self.profile_menu = ctk.CTkOptionMenu(top, values=["-"])
-        self.profile_menu.grid(row=3, column=1, sticky="ew", padx=12, pady=8)
+        options = ctk.CTkFrame(self)
+        options.pack(fill="x", pady=(0, 12))
 
         ctk.CTkLabel(
-            top,
+            options,
             text=(
                 "v1 unterstuetzt nur das Ueberschreiben eines vorhandenen Profils.\n"
                 '"Neues Profil anlegen" folgt in einer spaeteren Version.'
             ),
             justify="left",
             text_color="gray60",
-        ).grid(row=4, column=1, sticky="w", padx=12, pady=(0, 4))
+        ).pack(anchor="w", padx=12, pady=(8, 4))
 
         self.safety_backup_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            top, text="Sicherheits-Backup des Ziel-Profils erstellen", variable=self.safety_backup_var
-        ).grid(row=5, column=1, sticky="w", padx=12, pady=4)
+            options, text="Sicherheits-Backup der Ziel-Profile erstellen", variable=self.safety_backup_var
+        ).pack(anchor="w", padx=12, pady=4)
 
         self.local_state_var = ctk.BooleanVar(value=False)
-        self.local_state_check = ctk.CTkCheckBox(
-            top,
-            text="Local State mit uebernehmen (nur Chromium — Passwoerter bleiben trotzdem nicht portabel)",
+        ctk.CTkCheckBox(
+            options,
+            text=(
+                "Local State bei betroffenen Chromium-Profilen mit uebernehmen "
+                "(Passwoerter bleiben trotzdem nicht portabel)"
+            ),
             variable=self.local_state_var,
-        )
-        self.local_state_check.grid(row=6, column=1, sticky="w", padx=12, pady=(0, 8))
+        ).pack(anchor="w", padx=12, pady=(0, 8))
 
         self.start_button = ctk.CTkButton(self, text="Wiederherstellen", command=self._on_start_clicked)
         self.start_button.pack(pady=(0, 12))
@@ -105,34 +116,13 @@ class RestoreTab(ctk.CTkFrame):
         self.log_box.pack(fill="both", expand=True)
 
         if not self.browsers:
-            self._log("Kein unterstuetzter Browser (Firefox/Chrome/Edge) gefunden.")
-        else:
-            names = [b.display_name for b in self.browsers]
-            self.browser_menu.configure(values=names)
-            self.browser_menu.set(names[0])
-            self._on_browser_change(names[0])
+            self._log("Kein unterstuetzter Browser (Firefox/Chrome/Edge/...) gefunden.")
 
-    # -- Hilfsfunktionen -------------------------------------------------
-
-    def _current_browser(self) -> Browser | None:
-        name = self.browser_menu.get()
-        return next((b for b in self.browsers if b.display_name == name), None)
-
-    def _on_browser_change(self, _value):
-        browser = self._current_browser()
-        if not browser:
-            return
-        names = [p.name for p in browser.profiles]
-        self.profile_menu.configure(values=names or ["-"])
-        if names:
-            default = next((p.name for p in browser.profiles if p.is_default), names[0])
-            self.profile_menu.set(default)
-
-        if browser.local_state_path is not None:
-            self.local_state_check.configure(state="normal")
-        else:
-            self.local_state_var.set(False)
-            self.local_state_check.configure(state="disabled")
+    def _refresh_placeholder(self):
+        if not self.candidates:
+            ctk.CTkLabel(
+                self.list_frame, text="Noch keine ZIP-Dateien ausgewaehlt.", text_color="gray60"
+            ).pack(anchor="w", padx=8, pady=8)
 
     def _log(self, message: str):
         self.log_box.configure(state="normal")
@@ -140,100 +130,121 @@ class RestoreTab(ctk.CTkFrame):
         self.log_box.see("end")
         self.log_box.configure(state="disabled")
 
-    def _choose_zip(self):
-        chosen = filedialog.askopenfilename(
-            parent=self, filetypes=[("BrowserBackup ZIP", "*.zip")], title="Backup-ZIP auswaehlen"
+    # -- ZIP-Auswahl + automatischer Abgleich -----------------------------
+
+    def _choose_zips(self):
+        chosen = filedialog.askopenfilenames(
+            parent=self, filetypes=[("BrowserBackup ZIP", "*.zip")], title="Backup-ZIPs auswaehlen"
         )
         if not chosen:
             return
 
-        zip_path = Path(chosen)
-        try:
-            manifest = read_manifest(zip_path)
-        except (KeyError, OSError) as exc:
-            show_error(self, "Ungueltige ZIP", f"Manifest konnte nicht gelesen werden:\n{exc}")
+        self.candidates = []
+        for widget in self.list_frame.winfo_children():
+            widget.destroy()
+
+        for path_str in chosen:
+            zip_path = Path(path_str)
+            try:
+                manifest = read_manifest(zip_path)
+            except (KeyError, OSError) as exc:
+                self._log(f"! Manifest von {zip_path.name} konnte nicht gelesen werden: {exc}")
+                continue
+
+            browser = next((b for b in self.browsers if b.key == manifest.get("browser")), None)
+            candidate = _Candidate(zip_path=zip_path, manifest=manifest, browser=browser)
+            self.candidates.append(candidate)
+            self._add_row(candidate)
+
+        self._refresh_placeholder()
+
+    def _add_row(self, candidate: _Candidate):
+        row = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+        row.pack(fill="x", pady=2)
+
+        source_profile = candidate.manifest.get("source_profile_name", "?")
+        created_at = candidate.manifest.get("created_at", "?")
+
+        if candidate.browser is None:
+            candidate.var = ctk.BooleanVar(value=False)
+            text = (
+                f"{candidate.manifest.get('browser', '?')} – {source_profile}  "
+                f"(Browser hier nicht installiert, wird uebersprungen)"
+            )
+            checkbox = ctk.CTkCheckBox(row, text=text, variable=candidate.var, state="disabled")
+            checkbox.pack(side="left", anchor="w")
             return
 
-        self.zip_path = zip_path
-        self.manifest = manifest
+        candidate.var = ctk.BooleanVar(value=True)
+        label = f"{candidate.browser.display_name} – Quelle: {source_profile}  (erstellt {created_at})"
+        ctk.CTkCheckBox(row, text=label, variable=candidate.var).pack(side="left", anchor="w")
 
-        self.zip_entry.configure(state="normal")
-        self.zip_entry.delete(0, "end")
-        self.zip_entry.insert(0, str(zip_path))
-        self.zip_entry.configure(state="disabled")
+        ctk.CTkLabel(row, text="Ziel-Profil:").pack(side="left", padx=(12, 4))
+        profile_names = [p.name for p in candidate.browser.profiles]
+        best_match = source_profile if source_profile in profile_names else None
+        default_name = next((p.name for p in candidate.browser.profiles if p.is_default), None)
+        preselect = best_match or default_name or (profile_names[0] if profile_names else "-")
 
-        self._show_manifest(manifest)
-        self._preselect_target(manifest)
+        candidate.profile_menu = ctk.CTkOptionMenu(row, values=profile_names or ["-"], width=160)
+        candidate.profile_menu.set(preselect)
+        candidate.profile_menu.pack(side="left")
 
-    def _show_manifest(self, manifest: dict):
-        lines = [
-            f"Browser:        {manifest.get('browser', '-')}",
-            f"Quell-Profil:   {manifest.get('source_profile_name', '-')}",
-            f"Erstellt am:    {manifest.get('created_at', '-')}",
-            f"Quell-Rechner:  {manifest.get('source_host', '-')}",
-            f"Quell-OS:       {manifest.get('source_os', '-')}",
-            f"Local State enthalten: {'ja' if manifest.get('has_local_state') else 'nein'}",
-        ]
-        locked = manifest.get("locked_files") or []
-        if locked:
-            lines.append(f"Beim Sichern gesperrte Dateien: {len(locked)}")
+    def _select_all(self):
+        for candidate in self.candidates:
+            if candidate.browser is not None:
+                candidate.var.set(True)
 
-        self.manifest_box.configure(state="normal")
-        self.manifest_box.delete("1.0", "end")
-        self.manifest_box.insert("1.0", "\n".join(lines))
-        self.manifest_box.configure(state="disabled")
-
-    def _preselect_target(self, manifest: dict):
-        """Bequemlichkeit: waehlt Ziel-Browser/-Profil passend zum Manifest
-        vor, falls auf diesem Rechner vorhanden. Der Nutzer kann trotzdem
-        jederzeit ein anderes Ziel waehlen."""
-        browser_key = manifest.get("browser")
-        browser = next((b for b in self.browsers if b.key == browser_key), None)
-        if not browser:
-            return
-        self.browser_menu.set(browser.display_name)
-        self._on_browser_change(browser.display_name)
-
-        profile_name = manifest.get("source_profile_name")
-        if profile_name and profile_name in [p.name for p in browser.profiles]:
-            self.profile_menu.set(profile_name)
+    def _select_none(self):
+        for candidate in self.candidates:
+            if candidate.browser is not None:
+                candidate.var.set(False)
 
     # -- Ablauf -----------------------------------------------------
+
+    def _resolve_selected(self) -> list[tuple[Browser, Profile, Path, dict]]:
+        """Liefert (Browser, Profile, zip_path, manifest) fuer alle
+        angehakten Kandidaten, mit dem aktuell im Dropdown gewaehlten
+        Ziel-Profil."""
+        resolved = []
+        for candidate in self.candidates:
+            if not candidate.browser or not candidate.var.get():
+                continue
+            profile_name = candidate.profile_menu.get()
+            profile = next((p for p in candidate.browser.profiles if p.name == profile_name), None)
+            if profile:
+                resolved.append((candidate.browser, profile, candidate.zip_path, candidate.manifest))
+        return resolved
 
     def _on_start_clicked(self):
         if self.worker.is_running():
             return
 
-        if not self.zip_path:
-            show_error(self, "Keine ZIP", "Bitte zuerst eine Backup-ZIP auswaehlen.")
+        selected = self._resolve_selected()
+        if not selected:
+            show_error(self, "Keine Auswahl", "Bitte mindestens ein Backup mit installiertem Ziel-Browser auswaehlen.")
             return
 
-        browser = self._current_browser()
-        if not browser:
-            show_error(self, "Kein Browser", "Es wurde kein Ziel-Browser gefunden.")
-            return
+        distinct_browsers = list({b.key: b for b, _, _, _ in selected}.values())
+        for browser in distinct_browsers:
+            if is_browser_running(browser.key):
+                choice = ask_process_warning(self, browser.display_name)
+                if choice == "abbrechen":
+                    return
+                if choice == "beenden":
+                    errors = terminate_browser(browser.key, confirm=True)
+                    for err in errors:
+                        self._log(f"! Beenden fehlgeschlagen ({browser.display_name}): {err}")
 
-        profile_name = self.profile_menu.get()
-        profile = next((p for p in browser.profiles if p.name == profile_name), None)
-        if not profile:
-            show_error(self, "Kein Profil", "Bitte ein Ziel-Profil auswaehlen.")
-            return
+        make_safety_backup = self.safety_backup_var.get()
+        restore_local_state = self.local_state_var.get()
 
-        if is_browser_running(browser.key):
-            choice = ask_process_warning(self, browser.display_name)
-            if choice == "abbrechen":
-                return
-            if choice == "beenden":
-                errors = terminate_browser(browser.key, confirm=True)
-                for err in errors:
-                    self._log(f"! Beenden fehlgeschlagen: {err}")
-
+        overview = "\n".join(f'  - {b.display_name}: "{p.name}"' for b, p, _, _ in selected)
         confirmed = ask_yes_no(
             self,
             "Wiederherstellung bestaetigen",
-            f'Das Profil "{profile.name}" ({browser.display_name}) wird ueberschrieben.\n\n'
-            f"Sicherheits-Backup: {'ja' if self.safety_backup_var.get() else 'nein'}\n"
-            f"Local State uebernehmen: {'ja' if self.local_state_var.get() else 'nein'}\n\n"
+            f"Folgende {len(selected)} Profil(e) werden ueberschrieben:\n\n{overview}\n\n"
+            f"Sicherheits-Backup: {'ja' if make_safety_backup else 'nein'}\n"
+            f"Local State uebernehmen (wo zutreffend): {'ja' if restore_local_state else 'nein'}\n\n"
             "Fortfahren?",
         )
         if not confirmed:
@@ -244,26 +255,31 @@ class RestoreTab(ctk.CTkFrame):
         self.log_box.configure(state="normal")
         self.log_box.delete("1.0", "end")
         self.log_box.configure(state="disabled")
-        self._log(f"Stelle wieder her: {browser.display_name} / {profile.name} ...")
+        self._log(f"Stelle {len(selected)} Profil(e) wieder her ...")
 
-        zip_path = self.zip_path
-        make_safety_backup = self.safety_backup_var.get()
-        restore_local_state = self.local_state_var.get()
+        total_items = len(selected)
 
         def run(progress_callback):
-            return restore_profile(
-                zip_path,
-                browser,
-                profile,
-                make_safety_backup=make_safety_backup,
-                restore_local_state=restore_local_state,
-                progress_callback=progress_callback,
-            )
+            results = []
+            for index, (browser, profile, zip_path, _manifest) in enumerate(selected, start=1):
+                def wrapped_cb(current, total, message, _b=browser, _p=profile, _i=index):
+                    progress_callback(current, total, f"[{_i}/{total_items}] {_b.display_name} / {_p.name}: {message}")
+
+                result = restore_profile(
+                    zip_path,
+                    browser,
+                    profile,
+                    make_safety_backup=make_safety_backup,
+                    restore_local_state=restore_local_state,
+                    progress_callback=wrapped_cb,
+                )
+                results.append((browser, profile, result))
+            return results
 
         self.worker.start(run)
-        self.after(100, self._poll_worker, browser)
+        self.after(100, self._poll_worker)
 
-    def _poll_worker(self, browser: Browser):
+    def _poll_worker(self):
         try:
             while True:
                 item = self.worker.queue.get_nowait()
@@ -276,8 +292,8 @@ class RestoreTab(ctk.CTkFrame):
                     self._log(message)
 
                 elif kind == "done":
-                    _, result = item
-                    self._on_restore_done(browser, result)
+                    _, results = item
+                    self._on_restore_done(results)
                     return
 
                 elif kind == "error":
@@ -288,30 +304,34 @@ class RestoreTab(ctk.CTkFrame):
         except queue.Empty:
             pass
 
-        self.after(100, self._poll_worker, browser)
+        self.after(100, self._poll_worker)
 
-    def _on_restore_done(self, browser: Browser, result):
+    def _on_restore_done(self, results):
         self.progress_bar.set(1)
         self.start_button.configure(state="normal", text="Wiederherstellen")
 
-        self._log(f"\nFertig. Dateien wiederhergestellt: {result.restored_files}")
-        if result.locked_files:
-            self._log(f"Gesperrte/uebersprungene Dateien: {len(result.locked_files)}")
-            for locked in result.locked_files[:10]:
-                self._log(f"  ! {locked}")
-        if result.safety_backup_path:
-            self._log(f"Sicherheits-Backup: {result.safety_backup_path}")
-        if result.local_state_restored:
-            self._log("Local State wurde uebernommen.")
-            if result.local_state_backup_path:
-                self._log(f"Vorherige Local State gesichert als: {result.local_state_backup_path}")
+        total_restored = sum(result.restored_files for _, _, result in results)
+        total_locked = sum(len(result.locked_files) for _, _, result in results)
+        any_chromium = any(browser.local_state_path is not None for browser, _, _ in results)
 
-        summary_lines = [f"Dateien wiederhergestellt: {result.restored_files}"]
-        if result.locked_files:
-            summary_lines.append(f"Gesperrte/uebersprungene Dateien: {len(result.locked_files)}")
-        if result.safety_backup_path:
-            summary_lines.append(f"Sicherheits-Backup: {result.safety_backup_path}")
-        if browser.local_state_path is not None:  # jeder Chromium-Fork, nicht nur Chrome/Edge
+        self._log(f"\nFertig. {len(results)} Profil(e) wiederhergestellt.")
+        for browser, profile, result in results:
+            self._log(
+                f"  {browser.display_name} / {profile.name}: {result.restored_files} Dateien, "
+                f"{len(result.locked_files)} gesperrt"
+            )
+            if result.safety_backup_path:
+                self._log(f"    Sicherheits-Backup: {result.safety_backup_path}")
+            if result.local_state_restored:
+                self._log("    Local State wurde uebernommen.")
+
+        summary_lines = [
+            f"{len(results)} Profil(e) wiederhergestellt.",
+            f"Dateien insgesamt: {total_restored}",
+        ]
+        if total_locked:
+            summary_lines.append(f"Gesperrte/uebersprungene Dateien insgesamt: {total_locked}")
+        if any_chromium:
             summary_lines.append("")
             summary_lines.append(CHROMIUM_PASSWORD_HINWEIS)
 

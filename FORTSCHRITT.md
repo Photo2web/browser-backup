@@ -166,10 +166,42 @@
   ausgewaehlt -> zwei korrekte ZIP-Dateien, korrekte Sammel-Zusammenfassung
   (637 Dateien gesamt, Chromium-Hinweis erschien wie erwartet).
 
+- **Wiederherstellen-Tab auf Mehrfachauswahl umgebaut** (`gui/restore_tab.py`):
+  Mike fragte, ob sich beim Wiederherstellen ebenfalls nur bestimmte
+  Browser auswaehlen lassen — auch wenn (wie im Sichern-Tab jetzt Standard)
+  jedes Profil einzeln als eigene ZIP gesichert wurde. Umgesetzt:
+  - "Backup-ZIPs auswaehlen ..." oeffnet einen Mehrfachauswahl-Dialog
+    (`filedialog.askopenfilenames`) statt nur einer einzelnen Datei.
+  - Jede ausgewaehlte ZIP wird per Manifest (Feld `browser`) automatisch
+    einem installierten Ziel-Browser zugeordnet. Ist der Quell-Browser
+    hier nicht installiert, erscheint die Zeile deaktiviert mit Hinweis
+    "wird uebersprungen" statt eines erratenen/falschen Ziels.
+  - Pro Zeile zusaetzlich ein Ziel-Profil-Dropdown: vorbelegt mit dem
+    exakten Namens-Treffer aus dem Manifest, sonst mit dem Standardprofil
+    des Ziel-Browsers — der Nutzer kann es jederzeit manuell aendern.
+  - "Alle auswaehlen"/"Alle abwaehlen" wie im Sichern-Tab.
+  - Ein gemeinsames Sicherheits-Backup- und Local-State-Flag gilt fuer
+    den ganzen Batch (Local State wird ohnehin nur dort angewendet, wo
+    das Manifest `has_local_state` bestaetigt UND der Ziel-Browser
+    Chromium-basiert ist — bei allen anderen Eintraegen ein stiller No-Op).
+  - EIN gemeinsamer Bestaetigungs-Dialog vor dem Start listet alle
+    betroffenen Profile auf (statt N Einzel-Dialogen).
+  - Manifest-Textanzeige (fruehere Version: ein grosses Textfeld) entfaellt
+    zugunsten der kompakten Pro-Zeile-Darstellung (Browser, Quell-Profil,
+    Erstellungsdatum direkt im Checkbox-Label).
+- Getestet OHNE einen echten Restore auszuloesen (Mikes reale Profile
+  bleiben unangetastet, siehe "Zurueckgestellt" oben): Mehrfachauswahl von
+  2 Test-ZIPs -> beide korrekt erkannt, Ziel-Profile korrekt vorbelegt.
+  Zusaetzlich simuliert: Ziel-Browser nicht installiert -> Zeile korrekt
+  deaktiviert, taucht nicht in der finalen Auswahl auf.
+
 ### Offen / empfohlen
-- Mike sollte `python main.py` mit der neuen Checkliste (inkl. Opera/
-  Ecosia) einmal selbst durchklicken.
+- Mike sollte `python main.py` mit der neuen Checkliste in beiden Tabs
+  (Sichern + Wiederherstellen, inkl. Opera/Ecosia) einmal selbst
+  durchklicken.
 - Brave/Vivaldi/Opera GX bei Gelegenheit gegenpruefen, falls verfuegbar.
+- Echter Restore-Test mit der neuen Mehrfachauswahl auf einem Zweitgeraet,
+  sobald verfuegbar (siehe "Zurueckgestellt" oben).
 
 ### Auf v1.1 verschoben (bewusst, nicht vergessen)
 - Restore: "Neues Profil anlegen" (Firefox `profiles.ini`-Eintrag +
