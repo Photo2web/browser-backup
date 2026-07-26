@@ -62,10 +62,56 @@
   `terminate_browser()` (erfordert `confirm=True`) via `psutil`.
   Manuell getestet via `python -m core.processes`.
 
-### Offen (fuer Phase 2)
-- customtkinter-GUI: Sichern-/Wiederherstellen-Tabs, Worker-Thread +
-  Queue/`after()` fuer Fortschritt, Prozess-Check mit Warnung/Beenden-Angebot,
-  Chromium-Passwort-Hinweis im Abschluss-Dialog.
+### Zurueckgestellt
+- `restore.py` konnte nicht gegen ein echtes Ziel-Profil getestet werden
+  (Mike moechte seine echten Profile nicht riskieren). Test folgt, sobald
+  ein neuer/leerer Laptop zur Verfuegung steht. Bis dahin nur durch
+  Code-Review + die Wiederverwendung von `backup_profile()` fuer das
+  Sicherheits-Backup abgesichert.
+
+## Phase 2 — GUI (customtkinter)
+
+**Status:** ✅ Abgeschlossen (2026-07-26).
+
+### Erledigt
+- `gui/app.py`: Hauptfenster, Dark-Theme, `CTkSegmentedButton` zum
+  Umschalten zwischen "Sichern"/"Wiederherstellen".
+- `gui/worker.py`: `Worker`-Klasse — fuehrt Backup/Restore in einem
+  Thread aus, reicht Fortschritt/Ergebnis ueber eine `queue.Queue` an
+  die GUI weiter (Poll-Muster via `widget.after()`, GUI friert nicht ein).
+- `gui/dialogs.py`: wiederverwendete Dialoge — Prozess-Warnung mit drei
+  Optionen (Beenden/Trotzdem fortfahren/Abbrechen), Info-/Fehler-/
+  Ja-Nein-Dialoge. Loest bei Bedarf das echte Toplevel-Fenster auf
+  (`winfo_toplevel()`), damit `transient()`/`grab_set()` auch bei
+  Aufrufen aus einem Frame heraus funktionieren.
+- `gui/backup_tab.py`: Browser-/Profil-Dropdown, Zielordner-Auswahl,
+  Cache-Checkbox (Default an), Prozess-Check vor Start, Fortschrittsbalken
+  + Log, Abschluss-Dialog inkl. Chromium-Passwort-Hinweis (PROJEKT.md §6.2).
+- `gui/restore_tab.py`: ZIP-Auswahl mit read-only Manifest-Anzeige,
+  automatische Ziel-Vorauswahl passend zum Manifest, Ziel-Browser-/
+  Ziel-Profil-Dropdown, Sicherheits-Backup-Checkbox (Default an),
+  Local-State-Checkbox (nur bei Chromium-Ziel aktiv, Default aus gemaess
+  PROJEKT.md §6.3), Bestaetigungs-Dialog vor dem Ueberschreiben,
+  Prozess-Check, Abschluss-Dialog. Bewusst KEINE Radio-Auswahl
+  "neu anlegen" (v1-Scope), stattdessen Hinweistext.
+- `main.py`: Einstiegspunkt (`python main.py`).
+- `requirements.txt`: `customtkinter`, `psutil`.
+- Smoke-Tests durchgefuehrt (Fenster aufgebaut, kurz sichtbar, wieder
+  geschlossen — keine echten Backups/Restores ausgeloest):
+  - Alle 3 Browser + Profile werden in beiden Tabs korrekt geladen.
+  - Manifest-Anzeige mit echter Test-ZIP geprueft (Browser, Profilname,
+    Erstellt-am, Quellrechner, Quell-OS korrekt dargestellt).
+  - Ziel-Vorauswahl passend zum Manifest funktioniert.
+  - Local-State-Checkbox korrekt deaktiviert bei Firefox-Ziel, aktiviert
+    bei Chrome-Ziel.
+  - Der eigentliche "Wiederherstellen"-Button wurde NICHT ausgeloest
+    (haette ein echtes Profil ueberschrieben).
+
+### Offen / empfohlen
+- Mike sollte `python main.py` selbst einmal interaktiv durchklicken
+  (Layout, Klick-Verhalten, Fenstergroesse) — von hier aus liess sich nur
+  der Aufbau pruefen, nicht der visuelle Eindruck.
+- Echter End-to-End-Restore-Test auf einem Zweitgeraet, sobald verfuegbar.
 
 ### Auf v1.1 verschoben (bewusst, nicht vergessen)
 - Restore: "Neues Profil anlegen" (Firefox `profiles.ini`-Eintrag +
