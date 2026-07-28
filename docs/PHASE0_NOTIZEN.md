@@ -10,7 +10,7 @@ Ausgabe finalisiert.
 
 ## Ablauf
 
-1. Mike fuehrt aus: `python inspect_profiles.py`
+1. Mike fuehrt aus: `python tools/inspect_profiles.py`
 2. Ausgabe wird komplett zurueckgegeben (Copy/Paste).
 3. Gemeinsam wird geprueft:
    - Existieren die vorgeschlagenen Blacklist-Ordner tatsaechlich?

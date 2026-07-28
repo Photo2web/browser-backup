@@ -112,23 +112,23 @@ unten).
   zu hoch fuer v1.
 - Einige grosse, aber nicht eindeutig als „Cache" benannte Ordner werden
   bewusst NICHT ausgeschlossen (z. B. Chromium `WebStorage/`, Firefox
-  `gmp-widevinecdm/`) — Details in `FORTSCHRITT.md`.
+  `gmp-widevinecdm/`) — Details in `docs/FORTSCHRITT.md`.
 - Brave/Vivaldi/Opera GX sind ueber denselben Mechanismus wie Chrome/Edge
   eingebunden, aber nicht auf einer echten Installation verifiziert
   (siehe Kommentare in `core/browsers.py`).
 - `restore.py` konnte aus Vorsicht nicht gegen ein echtes Profil getestet
-  werden (siehe `FORTSCHRITT.md`, Abschnitt „Zurueckgestellt").
+  werden (siehe `docs/FORTSCHRITT.md`, Abschnitt „Zurueckgestellt").
 
 ---
 
 ## Build als portable .exe (PyInstaller)
 
 ```powershell
-pip install -r requirements-dev.txt
+pip install -r packaging/requirements-dev.txt
 pyinstaller --onefile --windowed --name BrowserBackup --collect-all customtkinter main.py
 ```
 
-Oder einfach `.\build.ps1` ausfuehren.
+Oder einfach `.\packaging\build.ps1` ausfuehren (aus dem Projekt-Root).
 
 Ergebnis: `dist\BrowserBackup.exe` — eine einzelne, portable Datei.
 
@@ -145,22 +145,30 @@ Der Build wurde getestet: die erzeugte `.exe` startet fehlerfrei.
 ## Projektstruktur
 
 ```
-core/                Kernlogik, GUI-unabhaengig, einzeln testbar
-  browsers.py         Browser-/Profil-Erkennung
-  blacklist.py         Cache-Ausschlussliste
-  backup.py             ZIP-Sicherung
-  restore.py             ZIP-Wiederherstellung
-  processes.py            Browser-Prozess-Check/-Beenden
-gui/                  customtkinter-Oberflaeche
-  app.py               Hauptfenster
-  backup_tab.py          Sichern-Tab
-  restore_tab.py          Wiederherstellen-Tab
-  worker.py                Thread + Queue fuer Fortschritt
-  dialogs.py                 Wiederverwendete Dialoge
 main.py               Einstiegspunkt
-inspect_profiles.py   Phase-0-Hilfsskript (nur Lesezugriff, zur Blacklist-Herleitung)
-PROJEKT.md            Vollstaendige Spezifikation
-FORTSCHRITT.md        Verlauf: erledigt / offen / Annahmen je Phase
+requirements.txt      Laufzeit-Abhaengigkeiten
+README.md             Diese Datei
+core/                 Kernlogik, GUI-unabhaengig, einzeln testbar
+  browsers.py           Browser-/Profil-Erkennung
+  blacklist.py          Cache-Ausschlussliste
+  backup.py             ZIP-Sicherung
+  restore.py            ZIP-Wiederherstellung
+  processes.py          Browser-Prozess-Check/-Beenden
+gui/                  customtkinter-Oberflaeche
+  app.py                Hauptfenster
+  backup_tab.py         Sichern-Tab
+  restore_tab.py        Wiederherstellen-Tab
+  worker.py             Thread + Queue fuer Fortschritt
+  dialogs.py            Wiederverwendete Dialoge
+docs/                 Projektdoku & Spezifikation (nicht Teil der Laufzeit)
+  PROJEKT.md            Vollstaendige Spezifikation
+  FORTSCHRITT.md        Verlauf: erledigt / offen / Annahmen je Phase
+  PHASE0_NOTIZEN.md     Herleitung der Cache-Blacklist (Phase 0)
+tools/                Hilfsskripte (nicht Teil der App)
+  inspect_profiles.py   Phase-0-Diagnose (nur Lesezugriff, zur Blacklist-Herleitung)
+packaging/            Build-Werkzeug fuer die portable .exe
+  build.ps1             PyInstaller-Wrapper
+  requirements-dev.txt  Build-Abhaengigkeiten (inkl. PyInstaller)
 ```
 
 ---

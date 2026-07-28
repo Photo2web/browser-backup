@@ -1,7 +1,11 @@
 # build.ps1 - Erstellt die portable BrowserBackup.exe per PyInstaller.
 #
-# Voraussetzung: pip install -r requirements-dev.txt
-# Aufruf: .\build.ps1
+# Liegt in packaging/, funktioniert aber unabhaengig vom Aufruf-Ort:
+# das Skript wechselt selbst ins Projekt-Root (ein Verzeichnis darueber),
+# damit main.py und die Ausgabeordner dist/ und build/ dort landen.
+#
+# Voraussetzung: pip install -r packaging/requirements-dev.txt
+# Aufruf (aus dem Projekt-Root): .\packaging\build.ps1
 #
 # --onefile   -> eine einzelne, portable .exe (kein Installer noetig)
 # --windowed  -> kein Konsolenfenster im Hintergrund
@@ -12,9 +16,12 @@
 
 $ErrorActionPreference = "Stop"
 
+# Immer aus dem Projekt-Root heraus bauen (Elternordner dieses Skripts).
+Set-Location (Join-Path $PSScriptRoot "..")
+
 if (-not (Get-Command pyinstaller -ErrorAction SilentlyContinue)) {
     Write-Host "PyInstaller ist nicht installiert. Installiere mit:" -ForegroundColor Yellow
-    Write-Host "  pip install -r requirements-dev.txt" -ForegroundColor Yellow
+    Write-Host "  pip install -r packaging/requirements-dev.txt" -ForegroundColor Yellow
     exit 1
 }
 
