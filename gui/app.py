@@ -16,6 +16,7 @@ from core import TOOL_VERSION
 
 from .backup_tab import BackupTab
 from .dialogs import show_info
+from .personal_tab import PersonalDataTab
 from .reinstall_tab import ReinstallTab
 from .restore_tab import RestoreTab
 
@@ -50,7 +51,7 @@ class App(ctk.CTk):
 
         self.segmented = ctk.CTkSegmentedButton(
             topbar,
-            values=["Sichern", "Wiederherstellen", "Neuinstallation"],
+            values=["Sichern", "Wiederherstellen", "Neuinstallation", "Persoenliche Daten"],
             command=self._on_switch,
         )
         self.segmented.set("Sichern")
@@ -67,6 +68,7 @@ class App(ctk.CTk):
         self.backup_tab = BackupTab(self.container)
         self.restore_tab = RestoreTab(self.container)
         self.reinstall_tab = ReinstallTab(self.container)
+        self.personal_tab = PersonalDataTab(self.container)
 
         self.backup_tab.pack(fill="both", expand=True)
 
@@ -127,14 +129,18 @@ class App(ctk.CTk):
         self.backup_tab.pack_forget()
         self.restore_tab.pack_forget()
         self.reinstall_tab.pack_forget()
+        self.personal_tab.pack_forget()
 
         if value == "Sichern":
             self.backup_tab.pack(fill="both", expand=True)
         elif value == "Wiederherstellen":
             self.restore_tab.pack(fill="both", expand=True)
-        else:
+        elif value == "Neuinstallation":
             self.reinstall_tab.pack(fill="both", expand=True)
             self.reinstall_tab.on_show()
+        else:
+            self.personal_tab.pack(fill="both", expand=True)
+            self.personal_tab.on_show()
 
 
 def main() -> None:
