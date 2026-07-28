@@ -101,3 +101,66 @@ def _format_bytes(n: int) -> str:
         if value < 1000.0 or unit == units[-1]:
             return f"{int(value)} {unit}" if unit == "B" else f"{value:.1f} {unit}"
         value /= 1000.0
+
+
+@dataclass
+class FolderSize:
+    total_bytes: int
+    file_count: int
+    walk_errors: list[str] = field(default_factory=list)
+
+
+def _iter_files(root) -> list[tuple[Path, str]]:
+    """(absoluter Pfad, relativer POSIX-Pfad) fuer alle Dateien unter root."""
+    root = Path(root)
+    out: list[tuple[Path, str]] = []
+    if not root.is_dir():
+        return out
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for name in filenames:
+            abs_path = Path(dirpath) / name
+            out.append((abs_path, abs_path.relative_to(root).as_posix()))
+    return out
+
+
+def _total_size(files) -> int:
+    total = 0
+    for abs_path, _rel in files:
+        try:
+            total += abs_path.stat().st_size
+        except OSError:
+            pass
+    return total
+
+
+def folder_size(path) -> FolderSize:
+    """Gesamtgroesse + Dateizahl eines Ordners; unlesbare Unterordner werden
+    gesammelt statt lautlos ignoriert (os.walk onerror)."""
+    path = Path(path)
+    total = 0
+    count = 0
+    errors: list[str] = []
+
+    def _on_error(exc: OSError) -> None:
+        errors.append(f"{exc.filename} ({exc.strerror or exc})")
+
+    for dirpath, _dirnames, filenames in os.walk(path, onerror=_on_error):
+        for name in filenames:
+            fp = Path(dirpath) / name
+            try:
+                total += fp.stat().st_size
+                count += 1
+            except OSError as exc:
+                errors.append(f"{fp} ({exc})")
+    return FolderSize(total_bytes=total, file_count=count, walk_errors=errors)
+
+
+def free_space(path) -> int:
+    """Freier Platz am Ziel. Sucht den naechsten existierenden Elternpfad,
+    falls das Ziel noch nicht angelegt wurde."""
+    p = Path(path)
+    while not p.exists():
+        if p.parent == p:
+            break
+        p = p.parent
+    return shutil.disk_usage(str(p)).free

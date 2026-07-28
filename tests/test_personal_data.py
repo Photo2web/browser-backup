@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -42,3 +43,29 @@ class DetectFoldersTests(unittest.TestCase):
             pd._resolve_known_folder = orig
         profile = Path(os.path.expanduser("~"))
         self.assertEqual(folders[0].path, profile / "Documents")
+
+
+class SizeTests(unittest.TestCase):
+    def test_folder_size_counts_bytes_and_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.txt").write_bytes(b"12345")           # 5
+            (root / "sub").mkdir()
+            (root / "sub" / "b.txt").write_bytes(b"abc")      # 3
+            size = pd.folder_size(root)
+            self.assertEqual(size.total_bytes, 8)
+            self.assertEqual(size.file_count, 2)
+            self.assertEqual(size.walk_errors, [])
+
+    def test_iter_files_relative_posix(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "sub").mkdir()
+            (root / "sub" / "b.txt").write_bytes(b"x")
+            rels = sorted(rel for _abs, rel in pd._iter_files(root))
+            self.assertEqual(rels, ["sub/b.txt"])
+
+    def test_free_space_uses_existing_parent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "does" / "not" / "exist"
+            self.assertGreater(pd.free_space(target), 0)
