@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 
 # Quellen, aus denen winget automatisch installieren kann.
@@ -30,7 +31,14 @@ _INSTALLABLE_SOURCES = frozenset({"winget", "msstore"})
 # (ASCII-Bindestrich sowie diverse Unicode-Striche, je nach winget-Version).
 _DASH_CHARS = frozenset("-–—─")
 
-_WINGET_LIST_ARGS = ("winget", "list", "--disable-interactivity")
+# --accept-source-agreements ist wichtig: bei erstmaliger winget-Nutzung (z.B.
+# frischer Rechner) wuerde winget sonst interaktiv nach der Quellen-Zustimmung
+# fragen und mit --disable-interactivity ohne Liste abbrechen.
+_WINGET_LIST_ARGS = (
+    "winget", "list",
+    "--accept-source-agreements",
+    "--disable-interactivity",
+)
 
 
 class WinGetUnavailable(RuntimeError):
@@ -147,12 +155,15 @@ def list_installed_apps(timeout: float = 180.0) -> list[InstalledApp]:
             "(Windows 10/11, ueblicherweise vorinstalliert)."
         )
 
+    # In einer --windowed-Exe gibt es keine Konsole: stdin explizit auf DEVNULL
+    # (ungueltige geerbte Handles vermeiden) und CREATE_NO_WINDOW, damit beim
+    # winget-Aufruf kein Konsolenfenster aufblitzt.
+    run_kwargs = {"capture_output": True, "timeout": timeout, "stdin": subprocess.DEVNULL}
+    if sys.platform == "win32":
+        run_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
     try:
-        proc = subprocess.run(
-            list(_WINGET_LIST_ARGS),
-            capture_output=True,
-            timeout=timeout,
-        )
+        proc = subprocess.run(list(_WINGET_LIST_ARGS), **run_kwargs)
     except FileNotFoundError as exc:  # winget verschwand zwischen which() und run()
         raise WinGetUnavailable("winget konnte nicht gestartet werden.") from exc
     except subprocess.TimeoutExpired as exc:
