@@ -262,3 +262,106 @@ def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None)
         target=target, folder_key=folder.key, mode=mode,
         file_count=written, skipped=skipped, manifest=manifest,
     )
+
+
+@dataclass
+class PersonalRestoreResult:
+    folder_key: str
+    dest: Path
+    restored: int = 0
+    skipped_existing: int = 0
+    overwritten: int = 0
+    errors: list[str] = field(default_factory=list)
+
+
+def read_backup_manifest(source) -> dict:
+    """Liest backup_manifest.json aus einem Backup — ZIP-Datei oder Kopie-Ordner."""
+    source = Path(source)
+    if source.is_file() and source.suffix.lower() == ".zip":
+        with zipfile.ZipFile(source) as zf:
+            with zf.open("backup_manifest.json") as fh:
+                return json.load(fh)
+    return json.loads((source / "backup_manifest.json").read_text(encoding="utf-8"))
+
+
+def _zip_mtime(zinfo) -> float:
+    """mtime eines ZIP-Eintrags aus dessen date_time-Tupel (0.0 bei Fehler)."""
+    try:
+        return time.mktime(zinfo.date_time + (0, 0, -1))
+    except (OverflowError, ValueError, OSError):
+        return 0.0
+
+
+def _should_write(dest_file: Path, src_mtime: float, conflict: str) -> str:
+    """Entscheidet fuer eine Datei: 'write' (Ziel fehlt), 'skip' oder 'overwrite'."""
+    if not dest_file.exists():
+        return "write"
+    if conflict == "overwrite":
+        return "overwrite"
+    if conflict == "newer":
+        try:
+            return "overwrite" if src_mtime > dest_file.stat().st_mtime else "skip"
+        except OSError:
+            return "overwrite"
+    return "skip"  # Default + conflict == "skip"
+
+
+def restore_personal_folder(source, dest, conflict="skip", progress_callback=None) -> PersonalRestoreResult:
+    """Stellt ein Backup (ZIP oder Kopie-Ordner) nach dest wieder her.
+    conflict: 'skip' (Default, zerstoerungsfrei), 'overwrite', 'newer'."""
+    source = Path(source)
+    dest = Path(dest)
+    manifest = read_backup_manifest(source)
+    result = PersonalRestoreResult(folder_key=manifest.get("folder_key", ""), dest=dest)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    def _apply(action: str) -> None:
+        if action == "skip":
+            result.skipped_existing += 1
+        elif action == "overwrite":
+            result.overwritten += 1
+        else:
+            result.restored += 1
+
+    if source.is_file() and source.suffix.lower() == ".zip":
+        with zipfile.ZipFile(source) as zf:
+            members = [m for m in zf.infolist()
+                       if m.filename.startswith("data/") and not m.is_dir()]
+            total = len(members)
+            for i, m in enumerate(members, start=1):
+                rel = m.filename[len("data/"):]
+                out = dest / rel
+                src_mtime = _zip_mtime(m)
+                action = _should_write(out, src_mtime, conflict)
+                try:
+                    if action != "skip":
+                        out.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(m) as fh, open(out, "wb") as target:
+                            shutil.copyfileobj(fh, target)
+                        if src_mtime:
+                            os.utime(out, (src_mtime, src_mtime))
+                    _apply(action)
+                except OSError as exc:
+                    result.errors.append(f"{rel} ({exc})")
+                if progress_callback:
+                    progress_callback(i, total, rel)
+    else:
+        files = _iter_files(source / "data")
+        total = len(files)
+        for i, (abs_path, rel) in enumerate(files, start=1):
+            out = dest / rel
+            try:
+                src_mtime = abs_path.stat().st_mtime
+            except OSError:
+                src_mtime = 0.0
+            action = _should_write(out, src_mtime, conflict)
+            try:
+                if action != "skip":
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(abs_path, out)
+                _apply(action)
+            except OSError as exc:
+                result.errors.append(f"{rel} ({exc})")
+            if progress_callback:
+                progress_callback(i, total, rel)
+    return result

@@ -75,7 +75,7 @@ class SizeTests(unittest.TestCase):
 
 def _make_folder(tmp_root: Path, key="documents") -> "pd.PersonalFolder":
     src = tmp_root / "src"
-    (src / "sub").mkdir(parents=True)
+    (src / "sub").mkdir(parents=True, exist_ok=True)
     (src / "a.txt").write_bytes(b"hello")
     (src / "sub" / "b.txt").write_bytes(b"world!")
     return pd.PersonalFolder(key=key, display_name="Dokumente", path=src, exists=True)
@@ -160,3 +160,66 @@ class BackupTests(unittest.TestCase):
             # Manifest total_bytes zaehlt nur die tatsaechlich gesicherte Datei (Finding 1).
             self.assertEqual(res.manifest["file_count"], 1)
             self.assertEqual(res.manifest["total_bytes"], len(b"world!"))  # nur b.txt
+
+
+class RestoreTests(unittest.TestCase):
+    def _backup(self, root: Path, mode: str) -> Path:
+        folder = _make_folder(root)
+        res = pd.backup_personal_folder(folder, root / "dest", mode=mode)
+        return res.target
+
+    def test_read_manifest_from_zip_and_copy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            zip_target = self._backup(root, "zip")
+            self.assertEqual(pd.read_backup_manifest(zip_target)["folder_key"], "documents")
+            copy_target = self._backup(root, "copy")
+            self.assertEqual(pd.read_backup_manifest(copy_target)["folder_key"], "documents")
+
+    def test_restore_zip_into_empty_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            zip_target = self._backup(root, "zip")
+            dest = root / "restore_here"
+            res = pd.restore_personal_folder(zip_target, dest, conflict="skip")
+            self.assertEqual((dest / "a.txt").read_bytes(), b"hello")
+            self.assertEqual((dest / "sub" / "b.txt").read_bytes(), b"world!")
+            self.assertEqual(res.restored, 2)
+            self.assertEqual(res.skipped_existing, 0)
+
+    def test_restore_copy_skip_keeps_existing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            copy_target = self._backup(root, "copy")
+            dest = root / "restore_here"
+            dest.mkdir()
+            (dest / "a.txt").write_bytes(b"KEEP")
+            res = pd.restore_personal_folder(copy_target, dest, conflict="skip")
+            self.assertEqual((dest / "a.txt").read_bytes(), b"KEEP")   # unveraendert
+            self.assertEqual(res.skipped_existing, 1)
+            self.assertEqual(res.restored, 1)                          # b.txt neu
+
+    def test_restore_overwrite_replaces(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            copy_target = self._backup(root, "copy")
+            dest = root / "restore_here"
+            dest.mkdir()
+            (dest / "a.txt").write_bytes(b"OLD")
+            res = pd.restore_personal_folder(copy_target, dest, conflict="overwrite")
+            self.assertEqual((dest / "a.txt").read_bytes(), b"hello")
+            self.assertEqual(res.overwritten, 1)
+
+    def test_restore_newer_only_overwrites_when_backup_newer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            copy_target = self._backup(root, "copy")
+            dest = root / "restore_here"
+            dest.mkdir()
+            older = dest / "a.txt"
+            older.write_bytes(b"OLD")
+            # Ziel deutlich in die Vergangenheit setzen -> Backup ist neuer.
+            os.utime(older, (1000, 1000))
+            res = pd.restore_personal_folder(copy_target, dest, conflict="newer")
+            self.assertEqual(older.read_bytes(), b"hello")
+            self.assertEqual(res.overwritten, 1)
