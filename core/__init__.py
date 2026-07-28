@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.1.3"  # v1.1.3: Programm-Icon, Installer --silent (Acrobat-Nachfrage weg)
+TOOL_VERSION = "1.1.4"  # v1.1.4: Meldungen im App-Design, Menue (Copyright/Hilfe)

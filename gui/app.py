@@ -7,6 +7,7 @@ in core/ — diese Datei kuemmert sich nur um Fenster + Tab-Umschaltung.
 """
 
 import sys
+import tkinter as tk
 from pathlib import Path
 
 import customtkinter as ctk
@@ -14,6 +15,7 @@ import customtkinter as ctk
 from core import TOOL_VERSION
 
 from .backup_tab import BackupTab
+from .dialogs import show_info
 from .reinstall_tab import ReinstallTab
 from .restore_tab import RestoreTab
 
@@ -43,13 +45,21 @@ class App(ctk.CTk):
         if usable_height < 680:
             self.geometry(f"880x{max(usable_height, 480)}")
 
+        topbar = ctk.CTkFrame(self, fg_color="transparent")
+        topbar.pack(padx=16, pady=(16, 8), fill="x")
+
         self.segmented = ctk.CTkSegmentedButton(
-            self,
+            topbar,
             values=["Sichern", "Wiederherstellen", "Neuinstallation"],
             command=self._on_switch,
         )
         self.segmented.set("Sichern")
-        self.segmented.pack(padx=16, pady=(16, 8), fill="x")
+        self.segmented.pack(side="left", fill="x", expand=True)
+
+        self.menu_button = ctk.CTkButton(
+            topbar, text="☰ Menu", width=80, command=self._open_menu
+        )
+        self.menu_button.pack(side="left", padx=(8, 0))
 
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True, padx=16, pady=(0, 16))
@@ -71,6 +81,46 @@ class App(ctk.CTk):
                 self.iconbitmap(str(ico))
         except Exception:
             pass
+
+    def _open_menu(self) -> None:
+        """Oeffnet das Menue oben rechts (Copyright / Hilfe) als Dropdown."""
+        menu = tk.Menu(self, tearoff=0)
+        # An das Dark-Theme angelehnt einfaerben.
+        menu.configure(
+            bg="#2b2b2b", fg="#dcdcdc", bd=0, activebackground="#1f6aa5",
+            activeforeground="white", relief="flat",
+        )
+        menu.add_command(label="Copyright / Ueber", command=self._show_about)
+        menu.add_command(label="Hilfe", command=self._show_help)
+        x = self.menu_button.winfo_rootx()
+        y = self.menu_button.winfo_rooty() + self.menu_button.winfo_height()
+        try:
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
+
+    def _show_about(self) -> None:
+        show_info(
+            self,
+            "Ueber BrowserBackup",
+            f"BrowserBackup v{TOOL_VERSION}\n\n"
+            "(c) 2026 photo2web (p2w)\n\n"
+            "Sichern, Wiederherstellen und Neuinstallieren von Browser-Profilen "
+            "und Programmen unter Windows. Portabel, ohne Adminrechte zum Start.",
+        )
+
+    def _show_help(self) -> None:
+        show_info(
+            self,
+            "Hilfe",
+            "Sichern: Ausgewaehlte Browser-Profile als ZIP-Datei(en) sichern.\n\n"
+            "Wiederherstellen: Gesicherte ZIPs auswaehlen und in das passende "
+            "Profil zurueckspielen (optional mit Sicherheits-Backup).\n\n"
+            "Neuinstallation: Grundausstattung und/oder installierte Programme "
+            "auswaehlen, Installationsdateien erzeugen und optional direkt via "
+            "winget installieren (Internetverbindung noetig).\n\n"
+            "Mehr Details stehen in der README.md im Programmordner.",
+        )
 
     def _on_switch(self, value: str) -> None:
         # Alle Tabs ausblenden, dann den gewaehlten einblenden.
