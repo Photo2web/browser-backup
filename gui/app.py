@@ -21,10 +21,23 @@ class App(ctk.CTk):
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
+        # Kompaktere Schrift/Widgets (Nutzerwunsch) - spart zugleich Hoehe.
+        ctk.set_widget_scaling(0.8)
 
         self.title(f"BrowserBackup v{TOOL_VERSION}")
-        self.geometry("860x680")
-        self.minsize(720, 560)
+        self.geometry("880x680")
+        self.minsize(700, 480)
+
+        # Fenster nie hoeher als der Bildschirm oeffnen, sonst sind die unteren
+        # Buttons abgeschnitten (v.a. auf Laptops mit hoher DPI-Skalierung).
+        self.update_idletasks()
+        try:
+            window_scaling = ctk.ScalingTracker.get_window_scaling(self)
+        except Exception:
+            window_scaling = 1.0
+        usable_height = int(self.winfo_screenheight() / window_scaling) - 70
+        if usable_height < 680:
+            self.geometry(f"880x{max(usable_height, 480)}")
 
         self.segmented = ctk.CTkSegmentedButton(
             self,

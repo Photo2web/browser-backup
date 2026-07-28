@@ -57,9 +57,41 @@ class ReinstallTab(ctk.CTkFrame):
     # -- UI-Aufbau -----------------------------------------------------
 
     def _build_ui(self):
-        # --- Grundausstattung -------------------------------------------
+        # === Unten fest angepinnt (immer sichtbar), damit die Buttons auch
+        #     auf kleinen/hoch-skalierten Bildschirmen nicht abgeschnitten
+        #     werden. Zuerst gepackt = am weitesten unten. ===
+        self.log_box = ctk.CTkTextbox(self, height=70)
+        self.log_box.configure(state="disabled")
+        self.log_box.pack(side="bottom", fill="x", pady=(4, 0))
+
+        button_row = ctk.CTkFrame(self, fg_color="transparent")
+        button_row.pack(side="bottom", pady=(6, 4))
+        self.create_button = ctk.CTkButton(
+            button_row, text="Dateien erzeugen", command=self._on_create_clicked
+        )
+        self.create_button.pack(side="left", padx=6)
+        self.install_button = ctk.CTkButton(
+            button_row, text="Jetzt installieren", command=self._on_install_clicked, state="disabled"
+        )
+        self.install_button.pack(side="left", padx=6)
+
+        form = ctk.CTkFrame(self)
+        form.pack(side="bottom", fill="x", pady=(4, 4))
+        form.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(form, text="Zielordner:").grid(row=0, column=0, sticky="w", padx=12, pady=6)
+        target_frame = ctk.CTkFrame(form, fg_color="transparent")
+        target_frame.grid(row=0, column=1, sticky="ew", padx=12, pady=6)
+        target_frame.grid_columnconfigure(0, weight=1)
+        self.target_entry = ctk.CTkEntry(
+            target_frame, placeholder_text="Zielordner fuer Anweisung, Skript und Bundle"
+        )
+        self.target_entry.grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(target_frame, text="Durchsuchen ...", width=110,
+                      command=self._choose_target_dir).grid(row=0, column=1, padx=(8, 0))
+
+        # === Oben (fuellt den Rest): Grundausstattung + installierte Programme ===
         ess_header = ctk.CTkFrame(self, fg_color="transparent")
-        ess_header.pack(fill="x")
+        ess_header.pack(side="top", fill="x")
         ctk.CTkLabel(
             ess_header, text="Grundausstattung (Standard-Programme fuer einen neuen PC):"
         ).pack(side="left", padx=(0, 8))
@@ -68,13 +100,12 @@ class ReinstallTab(ctk.CTkFrame):
         )
         self.essentials_select_btn.pack(side="left", padx=4)
 
-        self.essentials_frame = ctk.CTkScrollableFrame(self, height=120)
-        self.essentials_frame.pack(fill="x", pady=(4, 10))
+        self.essentials_frame = ctk.CTkScrollableFrame(self, height=110)
+        self.essentials_frame.pack(side="top", fill="x", pady=(4, 8))
         self._populate_essentials()
 
-        # --- Installierte Programme -------------------------------------
         inst_header = ctk.CTkFrame(self, fg_color="transparent")
-        inst_header.pack(fill="x")
+        inst_header.pack(side="top", fill="x")
         ctk.CTkLabel(inst_header, text="Auf diesem PC installierte Programme:").pack(
             side="left", padx=(0, 8)
         )
@@ -91,47 +122,16 @@ class ReinstallTab(ctk.CTkFrame):
         )
         self.reload_btn.pack(side="right", padx=4)
 
-        ctk.CTkLabel(self, text=_INTERNET_HINWEIS, text_color="gray70", wraplength=800,
-                     justify="left").pack(fill="x", pady=(2, 2))
+        ctk.CTkLabel(self, text=_INTERNET_HINWEIS, text_color="gray70", wraplength=820,
+                     justify="left").pack(side="top", fill="x", pady=(2, 2))
 
-        self.list_frame = ctk.CTkScrollableFrame(self, height=160)
-        self.list_frame.pack(fill="both", expand=True, pady=(4, 10))
+        self.list_frame = ctk.CTkScrollableFrame(self, height=120)
+        self.list_frame.pack(side="top", fill="both", expand=True, pady=(4, 6))
         self.status_label = ctk.CTkLabel(
             self.list_frame, text="Noch nicht geladen — bitte 'Aktualisieren' klicken.",
             text_color="gray70",
         )
         self.status_label.pack(anchor="w", padx=8, pady=8)
-
-        # --- Zielordner -------------------------------------------------
-        form = ctk.CTkFrame(self)
-        form.pack(fill="x", pady=(0, 10))
-        form.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(form, text="Zielordner:").grid(row=0, column=0, sticky="w", padx=12, pady=8)
-        target_frame = ctk.CTkFrame(form, fg_color="transparent")
-        target_frame.grid(row=0, column=1, sticky="ew", padx=12, pady=8)
-        target_frame.grid_columnconfigure(0, weight=1)
-        self.target_entry = ctk.CTkEntry(
-            target_frame, placeholder_text="Zielordner fuer Anweisung, Skript und Bundle"
-        )
-        self.target_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(target_frame, text="Durchsuchen ...", width=110,
-                      command=self._choose_target_dir).grid(row=0, column=1, padx=(8, 0))
-
-        # --- Aktions-Buttons --------------------------------------------
-        button_row = ctk.CTkFrame(self, fg_color="transparent")
-        button_row.pack(pady=(0, 10))
-        self.create_button = ctk.CTkButton(
-            button_row, text="Dateien erzeugen", command=self._on_create_clicked
-        )
-        self.create_button.pack(side="left", padx=6)
-        self.install_button = ctk.CTkButton(
-            button_row, text="Jetzt installieren", command=self._on_install_clicked, state="disabled"
-        )
-        self.install_button.pack(side="left", padx=6)
-
-        self.log_box = ctk.CTkTextbox(self, height=90)
-        self.log_box.configure(state="disabled")
-        self.log_box.pack(fill="both", expand=False)
 
     def _populate_essentials(self):
         last_category = None

@@ -162,6 +162,16 @@ def list_installed_apps(timeout: float = 180.0) -> list[InstalledApp]:
 
     text = _decode_winget_output(proc.stdout or b"")
     apps = _parse_winget_list(text)
+
+    # winget vorhanden (which() ok), lieferte aber keine brauchbare Liste:
+    # typisch auf Windows 10 mit fehlendem/veraltetem "App-Installer".
+    if not apps and (proc.returncode != 0 or not text.strip()):
+        raise WinGetUnavailable(
+            "winget lieferte keine Programmliste. Auf Windows 10 ist der "
+            "'App-Installer' oft nicht (aktuell genug) installiert - bitte im "
+            "Microsoft Store 'App-Installer' aktualisieren und erneut versuchen."
+        )
+
     apps.sort(key=lambda app: app.name.lower())
     return apps
 
