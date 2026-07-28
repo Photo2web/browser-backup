@@ -220,7 +220,7 @@ Write-Host 'winget ist verfuegbar.' -ForegroundColor Green
 # PowerShell 7 nachinstallieren, falls es fehlte
 if (-not $ps7Vorhanden) {
     Write-Host 'Installiere PowerShell 7 (Microsoft.PowerShell)...' -ForegroundColor Cyan
-    winget install --id Microsoft.PowerShell --source winget --exact --accept-package-agreements --accept-source-agreements --disable-interactivity
+    winget install --id Microsoft.PowerShell --source winget --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
     if ($LASTEXITCODE -eq 0) {
         Write-Host 'PowerShell 7 installiert.' -ForegroundColor Green
     } else {
@@ -243,7 +243,7 @@ foreach ($app in $apps) {
     Write-Host ''
     Write-Host ("Installiere {0} ({1}) ..." -f $app.Name, $app.Id) -ForegroundColor Cyan
     try {
-        winget install --id $app.Id --source $app.Source --exact --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget install --id $app.Id --source $app.Source --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
         if ($LASTEXITCODE -eq 0) {
             $erfolg++
         } else {

@@ -157,7 +157,7 @@ uebertragen — nur die Programme selbst neu installiert.
 
 ```powershell
 pip install -r packaging/requirements-dev.txt
-pyinstaller --onefile --windowed --name BrowserBackup --collect-all customtkinter main.py
+pyinstaller --onefile --windowed --name BrowserBackup --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
 ```
 
 Oder einfach `.\packaging\build.ps1` ausfuehren (aus dem Projekt-Root).

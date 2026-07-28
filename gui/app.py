@@ -6,6 +6,9 @@ Dark-Theme, Segmented Button zum Umschalten zwischen "Sichern" und
 in core/ — diese Datei kuemmert sich nur um Fenster + Tab-Umschaltung.
 """
 
+import sys
+from pathlib import Path
+
 import customtkinter as ctk
 
 from core import TOOL_VERSION
@@ -25,6 +28,7 @@ class App(ctk.CTk):
         ctk.set_widget_scaling(0.8)
 
         self.title(f"BrowserBackup v{TOOL_VERSION}")
+        self._set_window_icon()
         self.geometry("880x680")
         self.minsize(700, 480)
 
@@ -55,6 +59,18 @@ class App(ctk.CTk):
         self.reinstall_tab = ReinstallTab(self.container)
 
         self.backup_tab.pack(fill="both", expand=True)
+
+    def _set_window_icon(self) -> None:
+        """Setzt das Fenster-/Taskleisten-Icon. Funktioniert aus dem Quellcode
+        und aus der --onefile-Exe (dort liegt die Datei unter sys._MEIPASS).
+        Icon ist optional - schlaegt es fehl, startet die App trotzdem."""
+        try:
+            base = getattr(sys, "_MEIPASS", None) or Path(__file__).resolve().parent.parent
+            ico = Path(base) / "assets" / "icon.ico"
+            if ico.is_file():
+                self.iconbitmap(str(ico))
+        except Exception:
+            pass
 
     def _on_switch(self, value: str) -> None:
         # Alle Tabs ausblenden, dann den gewaehlten einblenden.

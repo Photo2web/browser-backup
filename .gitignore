@@ -6,3 +6,4 @@ build/
 dist/
 *.spec
 *.zip
+assets/icon_preview.png

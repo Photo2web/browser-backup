@@ -48,7 +48,7 @@ class PowerShellTests(unittest.TestCase):
         self.assertIn("Repair-WinGetPackageManager", ps)
         self.assertIn("ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1", ps)
         self.assertIn(
-            "winget install --id $app.Id --source $app.Source --exact "
+            "winget install --id $app.Id --source $app.Source --exact --silent "
             "--accept-package-agreements --accept-source-agreements",
             ps,
         )

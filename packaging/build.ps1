@@ -27,7 +27,7 @@ if (-not (Get-Command pyinstaller -ErrorAction SilentlyContinue)) {
 
 Write-Host "Baue BrowserBackup.exe ..." -ForegroundColor Cyan
 
-pyinstaller --onefile --windowed --name BrowserBackup --collect-all customtkinter main.py
+pyinstaller --onefile --windowed --name BrowserBackup --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`nFertig: dist\BrowserBackup.exe" -ForegroundColor Green
