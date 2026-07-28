@@ -1,6 +1,8 @@
+import json
 import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from core import personal_data as pd
@@ -69,3 +71,65 @@ class SizeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "does" / "not" / "exist"
             self.assertGreater(pd.free_space(target), 0)
+
+
+def _make_folder(tmp_root: Path, key="documents") -> "pd.PersonalFolder":
+    src = tmp_root / "src"
+    (src / "sub").mkdir(parents=True)
+    (src / "a.txt").write_bytes(b"hello")
+    (src / "sub" / "b.txt").write_bytes(b"world!")
+    return pd.PersonalFolder(key=key, display_name="Dokumente", path=src, exists=True)
+
+
+class BackupTests(unittest.TestCase):
+    def test_zip_backup_contains_data_and_manifest(self):
+        import zipfile as zf_mod
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = _make_folder(root)
+            dest = root / "dest"
+            res = pd.backup_personal_folder(folder, dest, mode="zip")
+            self.assertEqual(res.mode, "zip")
+            self.assertEqual(res.file_count, 2)
+            self.assertTrue(res.target.suffix == ".zip")
+            self.assertTrue(res.target.name.startswith("browserbackup_data_documents_"))
+            with zf_mod.ZipFile(res.target) as z:
+                names = z.namelist()
+                self.assertIn("data/a.txt", names)
+                self.assertIn("data/sub/b.txt", names)
+                self.assertIn("backup_manifest.json", names)
+                manifest = json.loads(z.read("backup_manifest.json"))
+            self.assertEqual(manifest["folder_key"], "documents")
+            self.assertEqual(manifest["kind"], "personal_data")
+            self.assertEqual(manifest["mode"], "zip")
+            self.assertIn("source_path", manifest)
+
+    def test_copy_backup_mirrors_files_and_writes_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = _make_folder(root)
+            dest = root / "dest"
+            res = pd.backup_personal_folder(folder, dest, mode="copy")
+            self.assertEqual(res.mode, "copy")
+            self.assertTrue(res.target.is_dir())
+            self.assertEqual((res.target / "data" / "a.txt").read_bytes(), b"hello")
+            self.assertEqual((res.target / "data" / "sub" / "b.txt").read_bytes(), b"world!")
+            self.assertTrue((res.target / "backup_manifest.json").is_file())
+
+    def test_progress_callback_called(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = _make_folder(root)
+            pd.backup_personal_folder(
+                folder, root / "dest", mode="copy",
+                progress_callback=lambda c, t, m: calls.append((c, t, m)),
+            )
+        self.assertTrue(calls)
+        self.assertEqual(calls[-1][0], calls[-1][1])  # am Ende current == total
+
+    def test_invalid_mode_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = _make_folder(Path(tmp))
+            with self.assertRaises(ValueError):
+                pd.backup_personal_folder(folder, Path(tmp) / "d", mode="rar")

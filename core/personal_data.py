@@ -164,3 +164,97 @@ def free_space(path) -> int:
             break
         p = p.parent
     return shutil.disk_usage(str(p)).free
+
+
+@dataclass
+class PersonalBackupResult:
+    target: Path
+    folder_key: str
+    mode: str
+    file_count: int
+    skipped: list[str] = field(default_factory=list)
+    manifest: dict = field(default_factory=dict)
+
+
+def _timestamp() -> str:
+    """Zeitstempel im Format YYYY-MM-DD_HHMM."""
+    return datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+
+
+def _build_manifest(folder, mode, file_count, total_bytes, skipped) -> dict:
+    """Erstellt ein Manifest-Dictionary mit Sicherungsinformationen."""
+    return {
+        "tool": "BrowserBackup",
+        "tool_version": TOOL_VERSION,
+        "kind": "personal_data",
+        "created_at": datetime.datetime.now().isoformat(),
+        "folder_key": folder.key,
+        "folder_display_name": folder.display_name,
+        "source_path": str(folder.path),
+        "mode": mode,
+        "file_count": file_count,
+        "total_bytes": total_bytes,
+        "source_host": platform.node(),
+        "source_os": f"{platform.system()} {platform.release()}",
+        "skipped": skipped,
+    }
+
+
+def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None) -> PersonalBackupResult:
+    """Sichert einen persoenlichen Ordner als ZIP (data/... + Manifest im ZIP)
+    oder als 1:1-Kopie (Ordner mit data/ + backup_manifest.json daneben).
+    Gesperrte Dateien werden uebersprungen und in skipped gesammelt."""
+    if mode not in ("zip", "copy"):
+        raise ValueError(f"Unbekannter Modus: {mode!r}")
+    if not folder.path.is_dir():
+        raise FileNotFoundError(f"Ordner existiert nicht: {folder.path}")
+
+    dest_dir = Path(dest_dir)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    files = _iter_files(folder.path)
+    total = len(files)
+    total_bytes = _total_size(files)
+    skipped: list[str] = []
+    written = 0
+    if progress_callback:
+        progress_callback(0, total, "Sicherung wird vorbereitet ...")
+
+    base = f"browserbackup_data_{folder.key}_{_timestamp()}"
+
+    if mode == "zip":
+        target = dest_dir / f"{base}.zip"
+        with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for abs_path, rel in files:
+                try:
+                    zf.write(abs_path, f"data/{rel}")
+                    written += 1
+                except (OSError, PermissionError) as exc:
+                    skipped.append(f"{rel} ({exc})")
+                if progress_callback:
+                    progress_callback(written + len(skipped), total, rel)
+            manifest = _build_manifest(folder, mode, written, total_bytes, skipped)
+            zf.writestr("backup_manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
+    else:
+        target = dest_dir / base
+        data_root = target / "data"
+        data_root.mkdir(parents=True, exist_ok=True)
+        for abs_path, rel in files:
+            out = data_root / rel
+            try:
+                out.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(abs_path, out)
+                written += 1
+            except (OSError, PermissionError) as exc:
+                skipped.append(f"{rel} ({exc})")
+            if progress_callback:
+                progress_callback(written + len(skipped), total, rel)
+        manifest = _build_manifest(folder, mode, written, total_bytes, skipped)
+        (target / "backup_manifest.json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    return PersonalBackupResult(
+        target=target, folder_key=folder.key, mode=mode,
+        file_count=written, skipped=skipped, manifest=manifest,
+    )
