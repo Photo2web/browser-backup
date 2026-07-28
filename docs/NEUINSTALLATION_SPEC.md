@@ -1,6 +1,6 @@
 # Spec: Tab „Neuinstallation" (App-Migration auf neuen Windows-Rechner)
 
-> Erstellt: 2026-07-28 · Ziel-Version: **1.1.0** · Status: freigegeben, in Umsetzung
+> Erstellt: 2026-07-28 · Ziel-Version: **1.1.0** · Status: **umgesetzt** (siehe docs/FORTSCHRITT.md, Abschnitt v1.1)
 
 ## 1. Ziel
 

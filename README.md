@@ -36,6 +36,10 @@ auf dem Zielrechner einmal abgefragt).
 - **Wiederherstellen:** mehrere Backup-ZIPs auf einmal auswaehlen, werden
   automatisch anhand des Manifests dem passenden installierten Browser/
   Profil zugeordnet. Ziel-Profil pro Zeile per Dropdown anpassbar.
+- **Neuinstallation (v1.1):** listet alle installierten Programme (via winget)
+  und erzeugt aus der Auswahl eine lesbare Installationsanweisung, ein
+  selbst-elevierendes winget-PowerShell-Skript und ein UniGetUI-Bundle, um die
+  Programme auf einem neuen Windows-Rechner wieder einzurichten.
 - Cache/temporaere Daten werden beim Sichern standardmaessig ausgeschlossen
   (abschaltbar) — siehe `core/blacklist.py` fuer die genaue Liste.
 - Vor Sicherung/Wiederherstellung wird geprueft, ob der betroffene Browser
@@ -100,6 +104,28 @@ Voraussetzung: Python 3.11+, Windows 10/11.
 werden, kein neues Profil angelegt werden (siehe „Bekannte Einschraenkungen"
 unten).
 
+### Neuinstallation (Programme auf einem neuen PC)
+
+1. Tab „Neuinstallation" oeffnen — die installierten Programme werden per
+   `winget` geladen (**Internetverbindung noetig**).
+2. Programme anhaken. winget-faehige sind automatisch installierbar; als
+   „(manuell)" markierte haben kein winget-Paket und landen nur in der
+   lesbaren Anleitung. „Alle winget-faehigen" waehlt alle automatisch
+   installierbaren aus.
+3. Zielordner waehlen und „Dateien erzeugen" klicken. Es entstehen drei Dateien:
+   - `Installationsanweisung.md` — lesbare Liste (winget + manuell),
+   - `Install-Apps.ps1` — Installationsskript fuer den neuen Rechner,
+   - `Apps.ubundle` — UniGetUI-Bundle (in UniGetUI unter *Package Bundles*
+     zu importieren).
+4. Auf dem neuen Rechner `Install-Apps.ps1` per Rechtsklick „Mit PowerShell
+   ausfuehren". Das Skript startet sich selbst mit Administrator-Rechten neu,
+   prueft PowerShell 7+, stellt winget sicher (faengt den „erst Microsoft
+   Store"-Fall ab) und installiert die Programme nacheinander.
+   **Internetverbindung noetig.**
+
+**Passwort-Hinweis gilt auch hier nicht:** Es werden keine Anmeldedaten
+uebertragen — nur die Programme selbst neu installiert.
+
 ---
 
 ## Bekannte Einschraenkungen (v1)
@@ -154,12 +180,16 @@ core/                 Kernlogik, GUI-unabhaengig, einzeln testbar
   backup.py             ZIP-Sicherung
   restore.py            ZIP-Wiederherstellung
   processes.py          Browser-Prozess-Check/-Beenden
+  installed_apps.py     Installierte Programme via winget (Neuinstallation)
+  installplan.py        Erzeugt Anleitung + PS-Skript + UniGetUI-Bundle
 gui/                  customtkinter-Oberflaeche
   app.py                Hauptfenster
   backup_tab.py         Sichern-Tab
   restore_tab.py        Wiederherstellen-Tab
+  reinstall_tab.py      Neuinstallation-Tab
   worker.py             Thread + Queue fuer Fortschritt
   dialogs.py            Wiederverwendete Dialoge
+tests/                Unit-Tests (python -m unittest discover -s tests)
 docs/                 Projektdoku & Spezifikation (nicht Teil der Laufzeit)
   PROJEKT.md            Vollstaendige Spezifikation
   FORTSCHRITT.md        Verlauf: erledigt / offen / Annahmen je Phase

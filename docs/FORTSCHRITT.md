@@ -286,3 +286,50 @@
   Roaming-Profil ODER unter `%LOCALAPPDATA%` liegen. v1 sichert nur das
   Roaming-Profil (wie in PROJEKT.md §4.1 spezifiziert) — der ausgelagerte
   lokale Cache wird dadurch ohnehin nie mitgesichert, das ist gewuenscht.
+
+---
+
+## v1.1 — Tab „Neuinstallation" (App-Migration via winget)
+
+Spezifikation: `docs/NEUINSTALLATION_SPEC.md` (freigegeben). Version → 1.1.0.
+
+### Erledigt
+- `core/installed_apps.py`: liest installierte Programme via
+  `winget list --disable-interactivity`. Positionsbasiertes, locale-
+  unabhaengiges Parsing (Header lokalisiert: `ID/Version/Verfügbar/Quelle`;
+  Spalte „Verfügbar" nur bei Updates → 4 oder 5 Spalten). winget-faehig =
+  Quelle `winget`/`msstore` + Id; sonst manuell (interne `ARP\`/`MSIX\`-Ids
+  verworfen). BOM-bewusstes Decoding. 9 Unit-Tests + Realtest auf Mikes
+  System (226 Programme, 92 winget-faehig, 134 manuell).
+- `core/installplan.py`: erzeugt drei Dateien —
+  1. `Installationsanweisung.md` (winget-faehig + manuell, lesbar),
+  2. `Install-Apps.ps1` (Selbst-Elevation als Admin → PowerShell-7-Check →
+     winget-Bootstrap [Add-AppxPackage-Re-Registrierung, sonst
+     `Install-Module Microsoft.WinGet.Client` + `Repair-WinGetPackageManager`,
+     sonst Store-Deeplink] → abgesicherte Einzelinstallation je Programm mit
+     `--source`/`--exact`/`--accept-*`),
+  3. `Apps.ubundle` (UniGetUI-Bundle). 9 Unit-Tests gruen.
+- `gui/reinstall_tab.py` + Einbindung als dritter Segment-Button. Checkliste
+  (winget-faehig ankreuzbar + „manuell" grau markiert), lazy-Load beim Oeffnen
+  via Worker-Thread, Internet-Hinweis, Refresh-Button.
+- Verifikation: 18 Unit-Tests gruen; generierte `Install-Apps.ps1` (real, 8
+  und 92 Apps) besteht den PowerShell-Parser-Syntaxcheck; `Apps.ubundle` ist
+  valides JSON; End-to-End headless im Tab getestet (laden → auswaehlen →
+  3 Dateien erzeugt).
+
+### UniGetUI-Bundle-Schema (am Quellcode verifiziert)
+- Top-Level: `export_version` (=3), `packages`, `incompatible_packages_info`,
+  `incompatible_packages`.
+- Paket: `Id`, `Name`, `Version`, `Source`, `ManagerName` (= `"Winget"`,
+  Quelle `winget`/`msstore`). `InstallationOptions`/`Updates` optional →
+  weggelassen. Manuelle Programme → `incompatible_packages` (Quelle „Local PC").
+
+### Offen / Annahmen
+- **Echter Lauf von `Install-Apps.ps1` erst auf dem Zielrechner** (analog
+  Restore bewusst nicht auf Mikes Produktivsystem getestet).
+- `winget list`-Parsing ist bei exotischen (CJK-)Namen fehleranfaellig; fuer
+  lateinische Namen unkritisch. Moegliches Upgrade: `Get-WinGetPackage`
+  (Microsoft.WinGet.Client) als strukturierte JSON-Quelle.
+- msstore-Installation nutzt `--source msstore`; ob jedes msstore-Paket ohne
+  Store-Anmeldung unbeaufsichtigt durchlaeuft, zeigt erst der Zielrechner.
+- winget-Verfuegbarkeit auf dem Quellrechner vorausgesetzt (Windows 11).
