@@ -315,12 +315,31 @@ class PersonalDataTab(ctk.CTkFrame):
             return
 
         jobs = []
+        needed_per_drive: dict[str, int] = {}
         for manifest, source, entry in self.restore_rows:
             target = entry.get().strip()
             if not target:
                 show_error(self, "Kein Ziel", f"Bitte Zielordner fuer {source.name} angeben.")
                 return
-            jobs.append((source, Path(target)))
+            target_path = Path(target)
+            jobs.append((source, target_path))
+            drive = target_path.anchor or str(target_path)
+            needed_per_drive[drive] = needed_per_drive.get(drive, 0) + int(manifest.get("total_bytes", 0))
+
+        # Speicherplatz am Ziel pruefen (Spec §5/§6). total_bytes im Manifest ist
+        # die tatsaechlich gesicherte Rohgroesse -> konservative Obergrenze fuer den Restore.
+        for drive, needed in needed_per_drive.items():
+            try:
+                free = free_space(drive)
+            except OSError:
+                continue
+            if needed > free:
+                show_error(self, "Zu wenig Speicherplatz",
+                           f"Ziel-Laufwerk {drive}\n"
+                           f"Benoetigt (max.): {_format_bytes(needed)}\n"
+                           f"Frei: {_format_bytes(free)}\n\n"
+                           "Bitte Platz schaffen oder weniger Backups auswaehlen.")
+                return
 
         conflict = ask_conflict_mode(self)
         if conflict == "abbrechen":
