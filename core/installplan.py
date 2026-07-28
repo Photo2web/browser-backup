@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import json
 import platform
+import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -378,4 +380,30 @@ def write_install_plan(
         bundle_path=bundle_path,
         installable_count=len(installable),
         manual_count=len(manual),
+    )
+
+
+def launch_install_script(script_path: Path | str) -> None:
+    """Startet das erzeugte ``Install-Apps.ps1`` in einem eigenen PowerShell-Fenster.
+
+    Das Skript regelt Admin-Elevation (UAC), PowerShell-7-Pruefung und den
+    winget-Bootstrap selbst. Es gibt bewusst keine Rueckmeldung ins Tool zurueck
+    (der elevierte Prozess laeuft getrennt) - der Fortschritt erscheint im
+    PowerShell-Fenster. Startet auf DEM Rechner, auf dem BrowserBackup laeuft.
+
+    Raises:
+        FileNotFoundError: wenn das Skript nicht existiert.
+    """
+    path = Path(script_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Installationsskript nicht gefunden: {path}")
+
+    creationflags = 0
+    if sys.platform == "win32":
+        # Eigenes Konsolenfenster, auch wenn BrowserBackup als --windowed-Exe laeuft.
+        creationflags = subprocess.CREATE_NEW_CONSOLE
+
+    subprocess.Popen(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(path)],
+        creationflags=creationflags,
     )

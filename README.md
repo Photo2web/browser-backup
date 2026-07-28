@@ -106,22 +106,28 @@ unten).
 
 ### Neuinstallation (Programme auf einem neuen PC)
 
-1. Tab „Neuinstallation" oeffnen — die installierten Programme werden per
-   `winget` geladen (**Internetverbindung noetig**).
-2. Programme anhaken. winget-faehige sind automatisch installierbar; als
-   „(manuell)" markierte haben kein winget-Paket und landen nur in der
-   lesbaren Anleitung. „Alle winget-faehigen" waehlt alle automatisch
-   installierbaren aus.
+1. Tab „Neuinstallation" oeffnen. Es gibt zwei Auswahl-Bereiche:
+   - **Grundausstattung** — eine feste, kuratierte Liste haeufiger Programme
+     (Browser, Acrobat Reader, 7-Zip, VLC, …), sofort waehlbar. Pflege in
+     `core/essential_apps.py`.
+   - **Installierte Programme** — werden per `winget` geladen
+     (**Internetverbindung noetig**). winget-faehige sind automatisch
+     installierbar; als „(manuell)" markierte haben kein winget-Paket und
+     landen nur in der lesbaren Anleitung.
+2. Gewuenschte Programme aus beiden Bereichen anhaken (werden zusammengefuehrt
+   und nach winget-Id dedupliziert).
 3. Zielordner waehlen und „Dateien erzeugen" klicken. Es entstehen drei Dateien:
    - `Installationsanweisung.md` — lesbare Liste (winget + manuell),
    - `Install-Apps.ps1` — Installationsskript fuer den neuen Rechner,
    - `Apps.ubundle` — UniGetUI-Bundle (in UniGetUI unter *Package Bundles*
      zu importieren).
-4. Auf dem neuen Rechner `Install-Apps.ps1` per Rechtsklick „Mit PowerShell
-   ausfuehren". Das Skript startet sich selbst mit Administrator-Rechten neu,
-   prueft PowerShell 7+, stellt winget sicher (faengt den „erst Microsoft
-   Store"-Fall ab) und installiert die Programme nacheinander.
-   **Internetverbindung noetig.**
+4. **Direkt installieren:** „Jetzt installieren" startet das erzeugte Skript auf
+   *diesem* Rechner (nach Rueckfrage). Sinnvoll also auf dem **neuen** Laptop.
+   Alternativ `Install-Apps.ps1` dorthin kopieren und per Rechtsklick „Mit
+   PowerShell ausfuehren".
+5. Das Skript startet sich selbst mit Administrator-Rechten neu (UAC), prueft
+   PowerShell 7+, stellt winget sicher (faengt den „erst Microsoft Store"-Fall
+   ab) und installiert die Programme nacheinander. **Internetverbindung noetig.**
 
 **Passwort-Hinweis gilt auch hier nicht:** Es werden keine Anmeldedaten
 uebertragen — nur die Programme selbst neu installiert.
@@ -181,7 +187,8 @@ core/                 Kernlogik, GUI-unabhaengig, einzeln testbar
   restore.py            ZIP-Wiederherstellung
   processes.py          Browser-Prozess-Check/-Beenden
   installed_apps.py     Installierte Programme via winget (Neuinstallation)
-  installplan.py        Erzeugt Anleitung + PS-Skript + UniGetUI-Bundle
+  installplan.py        Erzeugt Anleitung + PS-Skript + UniGetUI-Bundle; startet Skript
+  essential_apps.py     Kuratierte Grundausstattung (feste winget-Liste)
 gui/                  customtkinter-Oberflaeche
   app.py                Hauptfenster
   backup_tab.py         Sichern-Tab

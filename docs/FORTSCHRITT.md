@@ -317,6 +317,26 @@ Spezifikation: `docs/NEUINSTALLATION_SPEC.md` (freigegeben). Version → 1.1.0.
   valides JSON; End-to-End headless im Tab getestet (laden → auswaehlen →
   3 Dateien erzeugt).
 
+### Erweiterungen (nach Nutzer-Feedback, gleiche Version 1.1.0)
+- **„Jetzt installieren"-Button:** `installplan.launch_install_script()` startet
+  das erzeugte `Install-Apps.ps1` in einem eigenen Konsolenfenster
+  (`CREATE_NEW_CONSOLE`); Elevation/PS7/winget regelt das Skript selbst. Im Tab
+  nach „Dateien erzeugen" aktiv (nur wenn winget-faehige dabei), mit
+  Sicherheits-Rueckfrage. Bewusst kein echter Lauf auf Mikes System getestet —
+  Startlogik per Mock geprueft (richtiger Befehl, fehlendes Skript → Fehler).
+- **Grundausstattung** (`core/essential_apps.py`): feste, kuratierte Liste
+  haeufiger winget-Programme (12 Eintraege, alle IDs gegen die echte winget-
+  Quelle verifiziert). Als zweite Checkliste im Tab, auch ohne winget-Laden
+  waehlbar; Auswahl wird mit den installierten Programmen zusammengefuehrt und
+  nach `package_id` dedupliziert. Pflege durch Editieren der Liste im Code.
+- Verifikation: 24 Unit-Tests gruen; End-to-End headless (Grundausstattung →
+  erzeugen → Button aktiv → Start gemockt; Firefox landet im Skript);
+  Grundausstattungs-Skript besteht den PowerShell-Syntaxcheck.
+
+### Offen fuer v1.2 (Ideen)
+- Grundausstattung in der GUI editierbar + dauerhaft speichern (statt fest im
+  Code) — bewusst auf spaeter verschoben.
+
 ### UniGetUI-Bundle-Schema (am Quellcode verifiziert)
 - Top-Level: `export_version` (=3), `packages`, `incompatible_packages_info`,
   `incompatible_packages`.
