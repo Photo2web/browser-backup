@@ -11,6 +11,7 @@ import customtkinter as ctk
 from core import TOOL_VERSION
 
 from .backup_tab import BackupTab
+from .reinstall_tab import ReinstallTab
 from .restore_tab import RestoreTab
 
 
@@ -26,7 +27,9 @@ class App(ctk.CTk):
         self.minsize(720, 560)
 
         self.segmented = ctk.CTkSegmentedButton(
-            self, values=["Sichern", "Wiederherstellen"], command=self._on_switch
+            self,
+            values=["Sichern", "Wiederherstellen", "Neuinstallation"],
+            command=self._on_switch,
         )
         self.segmented.set("Sichern")
         self.segmented.pack(padx=16, pady=(16, 8), fill="x")
@@ -36,16 +39,23 @@ class App(ctk.CTk):
 
         self.backup_tab = BackupTab(self.container)
         self.restore_tab = RestoreTab(self.container)
+        self.reinstall_tab = ReinstallTab(self.container)
 
         self.backup_tab.pack(fill="both", expand=True)
 
     def _on_switch(self, value: str) -> None:
+        # Alle Tabs ausblenden, dann den gewaehlten einblenden.
+        self.backup_tab.pack_forget()
+        self.restore_tab.pack_forget()
+        self.reinstall_tab.pack_forget()
+
         if value == "Sichern":
-            self.restore_tab.pack_forget()
             self.backup_tab.pack(fill="both", expand=True)
-        else:
-            self.backup_tab.pack_forget()
+        elif value == "Wiederherstellen":
             self.restore_tab.pack(fill="both", expand=True)
+        else:
+            self.reinstall_tab.pack(fill="both", expand=True)
+            self.reinstall_tab.on_show()
 
 
 def main() -> None:
