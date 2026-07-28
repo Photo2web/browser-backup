@@ -133,3 +133,30 @@ class BackupTests(unittest.TestCase):
             folder = _make_folder(Path(tmp))
             with self.assertRaises(ValueError):
                 pd.backup_personal_folder(folder, Path(tmp) / "d", mode="rar")
+
+    def test_copy_backup_skips_locked_file_without_aborting(self):
+        import shutil as _shutil
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = _make_folder(root)   # a.txt + sub/b.txt
+            dest = root / "dest"
+            real_copy2 = _shutil.copy2
+
+            def flaky_copy2(src, dst, *a, **k):
+                if str(src).endswith("a.txt"):
+                    raise PermissionError("gesperrt (Test)")
+                return real_copy2(src, dst, *a, **k)
+
+            with mock.patch("core.personal_data.shutil.copy2", side_effect=flaky_copy2):
+                res = pd.backup_personal_folder(folder, dest, mode="copy")
+
+            # Lauf ist NICHT abgebrochen, b.txt wurde gesichert, a.txt landet in skipped.
+            self.assertEqual(res.file_count, 1)
+            self.assertEqual(len(res.skipped), 1)
+            self.assertIn("a.txt", res.skipped[0])
+            self.assertTrue((res.target / "data" / "sub" / "b.txt").is_file())
+            self.assertFalse((res.target / "data" / "a.txt").exists())
+            # Manifest total_bytes zaehlt nur die tatsaechlich gesicherte Datei (Finding 1).
+            self.assertEqual(res.manifest["file_count"], 1)
+            self.assertEqual(res.manifest["total_bytes"], len(b"world!"))  # nur b.txt

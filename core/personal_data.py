@@ -214,9 +214,9 @@ def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None)
 
     files = _iter_files(folder.path)
     total = len(files)
-    total_bytes = _total_size(files)
     skipped: list[str] = []
     written = 0
+    written_files: list[tuple[Path, str]] = []
     if progress_callback:
         progress_callback(0, total, "Sicherung wird vorbereitet ...")
 
@@ -229,10 +229,12 @@ def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None)
                 try:
                     zf.write(abs_path, f"data/{rel}")
                     written += 1
+                    written_files.append((abs_path, rel))
                 except (OSError, PermissionError) as exc:
                     skipped.append(f"{rel} ({exc})")
                 if progress_callback:
                     progress_callback(written + len(skipped), total, rel)
+            total_bytes = _total_size(written_files)
             manifest = _build_manifest(folder, mode, written, total_bytes, skipped)
             zf.writestr("backup_manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
     else:
@@ -245,10 +247,12 @@ def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None)
                 out.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(abs_path, out)
                 written += 1
+                written_files.append((abs_path, rel))
             except (OSError, PermissionError) as exc:
                 skipped.append(f"{rel} ({exc})")
             if progress_callback:
                 progress_callback(written + len(skipped), total, rel)
+        total_bytes = _total_size(written_files)
         manifest = _build_manifest(folder, mode, written, total_bytes, skipped)
         (target / "backup_manifest.json").write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
