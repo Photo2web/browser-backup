@@ -40,6 +40,11 @@ auf dem Zielrechner einmal abgefragt).
   und erzeugt aus der Auswahl eine lesbare Installationsanweisung, ein
   selbst-elevierendes winget-PowerShell-Skript und ein UniGetUI-Bundle, um die
   Programme auf einem neuen Windows-Rechner wieder einzurichten.
+- **Persönliche Daten (v1.2):** sichert die persönlichen Windows-Ordner
+  (Dokumente, Bilder, Musik, Videos, Desktop, Downloads) wahlweise als ZIP oder
+  1:1-Kopie und stellt sie wieder her. Mit Speicherplatz-Prüfung (Medium +
+  Zielrechner) und Fortschrittsbalken. Bekannt-Ordner werden über die
+  Windows-API aufgelöst (OneDrive/NextCloud-Umleitung wird berücksichtigt).
 - Cache/temporaere Daten werden beim Sichern standardmaessig ausgeschlossen
   (abschaltbar) — siehe `core/blacklist.py` fuer die genaue Liste.
 - Vor Sicherung/Wiederherstellung wird geprueft, ob der betroffene Browser
@@ -189,11 +194,13 @@ core/                 Kernlogik, GUI-unabhaengig, einzeln testbar
   installed_apps.py     Installierte Programme via winget (Neuinstallation)
   installplan.py        Erzeugt Anleitung + PS-Skript + UniGetUI-Bundle; startet Skript
   essential_apps.py     Kuratierte Grundausstattung (feste winget-Liste)
+  personal_data.py      Persoenliche Ordner sichern/wiederherstellen (v1.2)
 gui/                  customtkinter-Oberflaeche
   app.py                Hauptfenster
   backup_tab.py         Sichern-Tab
   restore_tab.py        Wiederherstellen-Tab
   reinstall_tab.py      Neuinstallation-Tab
+  personal_tab.py       Tab "Persoenliche Daten"
   worker.py             Thread + Queue fuer Fortschritt
   dialogs.py            Wiederverwendete Dialoge
 tests/                Unit-Tests (python -m unittest discover -s tests)
