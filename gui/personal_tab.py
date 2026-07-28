@@ -25,7 +25,7 @@ from core.personal_data import (
     restore_personal_folder,
 )
 
-from .dialogs import ask_yes_no, show_error, show_info
+from .dialogs import ask_conflict_mode, show_error, show_info
 from .worker import Worker
 
 _MODE_HINT = ("Hinweis: Fotos/Musik/Videos sind schon komprimiert - eine "
@@ -154,6 +154,7 @@ class PersonalDataTab(ctk.CTkFrame):
     # -- Groessen laden -------------------------------------------------
 
     def _load_sizes(self):
+        self.backup_button.configure(state="disabled", text="Groessen werden ermittelt ...")
         existing = [f for f, _v, _l in self.backup_items if f.exists]
 
         def run(_progress):
@@ -170,7 +171,11 @@ class PersonalDataTab(ctk.CTkFrame):
                     self._on_sizes_loaded(item[1])
                     return
                 if item[0] == "error":
+                    self.backup_button.configure(state="normal", text="Sichern")
                     self._log(f"Groessen konnten nicht geladen werden: {item[1]}")
+                    show_error(self, "Groessen nicht ermittelbar",
+                              f"Die Ordnergroessen konnten nicht bestimmt werden:\n{item[1]}\n\n"
+                              "Tab schliessen und erneut oeffnen, um es noch einmal zu versuchen.")
                     return
         except queue.Empty:
             pass
@@ -183,6 +188,7 @@ class PersonalDataTab(ctk.CTkFrame):
             if folder.key in sizes:
                 label.configure(text=_format_bytes(sizes[folder.key]))
         self._update_totals()
+        self.backup_button.configure(state="normal", text="Sichern")
 
     def _update_totals(self):
         total = sum(self._sizes.get(f.key, 0) for f, v, _l in self.backup_items if v.get())
@@ -211,6 +217,12 @@ class PersonalDataTab(ctk.CTkFrame):
             show_error(self, "Kein Zielordner", "Bitte einen Zielordner auswaehlen.")
             return
         dest = Path(dest_text)
+
+        if not self._sizes_loaded:
+            show_error(self, "Bitte kurz warten",
+                       "Die Ordnergroessen werden noch ermittelt. Bitte einen Moment warten "
+                       "und erneut auf 'Sichern' klicken.")
+            return
 
         needed = sum(self._sizes.get(f.key, 0) for f in selected)
         try:
@@ -295,9 +307,11 @@ class PersonalDataTab(ctk.CTkFrame):
                          text_color="gray70").pack(anchor="w", padx=8, pady=8)
 
     def _on_restore_clicked(self):
-        if self.worker.is_running() or not self.restore_rows:
-            if not self.restore_rows:
-                show_error(self, "Kein Backup", "Bitte zuerst ein Backup waehlen.")
+        if self.worker.is_running():
+            show_info(self, "Bitte warten", "Es laeuft gerade ein anderer Vorgang.")
+            return
+        if not self.restore_rows:
+            show_error(self, "Kein Backup", "Bitte zuerst ein Backup waehlen.")
             return
 
         jobs = []
@@ -308,8 +322,8 @@ class PersonalDataTab(ctk.CTkFrame):
                 return
             jobs.append((source, Path(target)))
 
-        conflict = self._ask_conflict()
-        if conflict is None:
+        conflict = ask_conflict_mode(self)
+        if conflict == "abbrechen":
             return
 
         self.restore_button.configure(state="disabled", text="Laeuft ...")
@@ -327,22 +341,6 @@ class PersonalDataTab(ctk.CTkFrame):
 
         self.worker.start(run)
         self.after(100, lambda: self._poll_run(self._on_restore_done))
-
-    def _ask_conflict(self) -> str | None:
-        """Dialog: Konfliktverhalten waehlen. Gibt 'skip'|'overwrite'|'newer'
-        oder None (Abbruch) zurueck. Nutzt ask_yes_no gestaffelt, um ohne neuen
-        Dialogtyp auszukommen (Default = zerstoerungsfrei)."""
-        keep = ask_yes_no(self, "Vorhandene Dateien",
-                          "Vorhandene Dateien am Ziel NICHT ueberschreiben?\n\n"
-                          "Ja  = vorhandene ueberspringen (sicher)\n"
-                          "Nein = ueberschreiben")
-        if keep:
-            return "skip"
-        only_newer = ask_yes_no(self, "Nur neuere?",
-                                "Nur ueberschreiben, wenn die Datei im Backup NEUER ist?\n\n"
-                                "Ja  = nur neuere ueberschreiben\n"
-                                "Nein = immer ueberschreiben")
-        return "newer" if only_newer else "overwrite"
 
     def _on_restore_done(self, results):
         self.progress_bar.set(1)

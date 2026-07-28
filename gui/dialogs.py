@@ -99,6 +99,24 @@ def ask_yes_no(parent, title: str, message: str) -> bool:
     )
 
 
+def ask_conflict_mode(parent) -> str:
+    """Konfliktverhalten fuer die Wiederherstellung.
+    Rueckgabe: 'skip' | 'newer' | 'overwrite' | 'abbrechen'.
+    Escape/Schliessen -> 'abbrechen' (zerstoerungsfrei, echter Abbruch)."""
+    return _themed_dialog(
+        parent, "Wiederherstellen - vorhandene Dateien",
+        "Wie sollen bereits vorhandene Dateien am Ziel behandelt werden?",
+        buttons=[
+            ("Vorhandene ueberspringen (sicher)", "skip", None),
+            ("Nur neuere ueberschreiben", "newer", "gray40"),
+            ("Immer ueberschreiben", "overwrite", "gray30"),
+            ("Abbrechen", "abbrechen", "gray30"),
+        ],
+        escape_value="abbrechen",
+        stacked=True,
+    )
+
+
 def ask_process_warning(parent, browser_display_name: str) -> str:
     """Dialog mit drei Optionen, wenn der Ziel-/Quellbrowser noch laeuft
     (PROJEKT.md §8.3/§9.5). Gibt 'beenden', 'weiter' oder 'abbrechen' zurueck."""
