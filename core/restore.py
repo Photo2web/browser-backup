@@ -1,5 +1,5 @@
 """
-restore.py — Wiederherstellung eines Profils aus einer BrowserBackup-ZIP.
+restore.py — Wiederherstellung eines Profils aus einer Umzugstool-ZIP.
 
 v1-Scope (bestaetigt in Phase 0, siehe PHASE0_NOTIZEN.md): nur
 "vorhandenes Profil ueberschreiben" wird unterstuetzt. "Neues Profil
@@ -78,7 +78,7 @@ def restore_profile(
             progress_callback=None,
         )
         # Sicherheits-Backup klar als solches kennzeichnen.
-        safety_name = safety_result.zip_path.name.replace("browserbackup_", "browserbackup_SAFETY_", 1)
+        safety_name = safety_result.zip_path.name.replace("umzug_", "umzug_SAFETY_", 1)
         safety_path = safety_result.zip_path.with_name(safety_name)
         safety_result.zip_path.rename(safety_path)
         result.safety_backup_path = safety_path

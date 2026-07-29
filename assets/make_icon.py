@@ -1,4 +1,4 @@
-"""Erzeugt das BrowserBackup-Programmicon (assets/icon.ico) + eine PNG-Vorschau.
+"""Erzeugt das Umzugstool-Programmicon (assets/icon.ico) + eine PNG-Vorschau.
 
 Reproduzierbar und Git-freundlich: das Icon wird per Pillow gezeichnet, nicht
 als Binaerblob "von Hand" abgelegt. Aenderungen einfach hier vornehmen und

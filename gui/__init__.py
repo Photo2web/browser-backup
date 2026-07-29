@@ -1,1 +1,1 @@
-"""BrowserBackup — GUI-Paket (customtkinter). Ruft ausschliesslich core/ auf."""
+"""Umzugstool — GUI-Paket (customtkinter). Ruft ausschliesslich core/ auf."""

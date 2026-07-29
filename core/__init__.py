@@ -1,5 +1,5 @@
 """
-BrowserBackup — Kernlogik-Paket.
+Umzugstool — Kernlogik-Paket.
 
 Enthaelt reine, GUI-unabhaengige Funktionen zur Browser-/Profil-Erkennung,
 Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.2.0"  # v1.2.0: Persoenliche Daten sichern/wiederherstellen + Fortschrittsbalken
+TOOL_VERSION = "1.3.0"  # v1.3.0: Modus-Navigation + Lauf-Ordner + farbiger Balken + Umzugstool-Rebranding

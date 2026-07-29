@@ -1,8 +1,11 @@
-# BrowserBackup
+# Umzugstool — fuer Windows 10+
 
-Portables Windows-Tool zum Sichern und Wiederherstellen von Browser-Profilen
-(Firefox, Chrome, Edge, Brave, Vivaldi, Opera, Opera GX, Ecosia). Kein
-Installer, keine Adminrechte noetig.
+Portables Windows-Tool fuer den Rechnerumzug: sichert und stellt
+Browser-Profile (Firefox, Chrome, Edge, Brave, Vivaldi, Opera, Opera GX,
+Ecosia) sowie persoenliche Daten (Dokumente, Bilder, Musik, Videos, Desktop,
+Downloads) wieder her und erstellt eine Installationsanweisung samt Skript
+fuer die auf dem alten Rechner installierten Programme (Neuinstallation).
+Kein Installer, keine Adminrechte noetig.
 
 ---
 
@@ -32,7 +35,7 @@ auf dem Zielrechner einmal abgefragt).
 
 - **Sichern:** beliebige installierte Browser/Profile per Checkliste
   auswaehlen — einzeln oder alle auf einmal. Jedes Profil landet in einer
-  eigenen ZIP-Datei (`browserbackup_<browser>_<profil>_<datum_zeit>.zip`).
+  eigenen ZIP-Datei (`umzug_<browser>_<profil>_<datum_zeit>.zip`).
 - **Wiederherstellen:** mehrere Backup-ZIPs auf einmal auswaehlen, werden
   automatisch anhand des Manifests dem passenden installierten Browser/
   Profil zugeordnet. Ziel-Profil pro Zeile per Dropdown anpassbar.
@@ -60,7 +63,7 @@ auf dem Zielrechner einmal abgefragt).
 
 ### Als fertige .exe
 
-Falls `dist\BrowserBackup.exe` bereits gebaut wurde (siehe unten):
+Falls `dist\Umzugstool.exe` bereits gebaut wurde (siehe unten):
 Doppelklick genuegt, kein Installer, keine Adminrechte noetig.
 
 ### Aus dem Quellcode
@@ -162,12 +165,12 @@ uebertragen — nur die Programme selbst neu installiert.
 
 ```powershell
 pip install -r packaging/requirements-dev.txt
-pyinstaller --onefile --windowed --name BrowserBackup --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
+pyinstaller --onefile --windowed --name Umzugstool --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
 ```
 
 Oder einfach `.\packaging\build.ps1` ausfuehren (aus dem Projekt-Root).
 
-Ergebnis: `dist\BrowserBackup.exe` — eine einzelne, portable Datei.
+Ergebnis: `dist\Umzugstool.exe` — eine einzelne, portable Datei.
 
 **Warum `--collect-all customtkinter`?** customtkinter liefert eigene
 Theme-/Asset-Dateien (JSON, Fonts) aus, die PyInstaller ohne dieses Flag

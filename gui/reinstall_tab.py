@@ -1,5 +1,5 @@
 """
-reinstall_tab.py — "Neuinstallation"-Tab der BrowserBackup-GUI.
+reinstall_tab.py — "Neuinstallation"-Tab der Umzugstool-GUI.
 
 Zwei Quellen fuer die Auswahl:
 1. **Grundausstattung** - eine kuratierte, feste Liste haeufig gebrauchter
