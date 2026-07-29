@@ -27,11 +27,17 @@ class BackupModeProviderTests(unittest.TestCase):
             b = mode.module_dir("PersoenlicheDaten")
             self.assertEqual(a.parent, b.parent)
             self.assertTrue(a.parent.name.startswith("Umzug_"))
-            # nach Reset ein neuer Lauf
+            # nach Reset ein neuer Lauf: reset_run() muss _run verwerfen, und
+            # der naechste module_dir()-Aufruf muss ein NEUES RunFolder-Objekt
+            # anlegen (deterministisch pruefbar per id(), unabhaengig vom
+            # Minuten-Zeitstempel).
+            run_before = mode._run
             mode.reset_run()
+            self.assertIsNone(mode._run)
             mode.resolve_target()
             c = mode.module_dir("Browser")
-            self.assertNotEqual(a.parent, c.parent) if a.parent.name != c.parent.name else None
+            self.assertIsNotNone(mode._run)
+            self.assertIsNot(mode._run, run_before)
         finally:
             root.destroy()
 

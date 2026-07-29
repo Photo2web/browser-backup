@@ -76,6 +76,8 @@ class BackupMode(ctk.CTkFrame):
         return base
 
     def module_dir(self, name: str) -> Path:
+        if self._base is None:
+            raise RuntimeError("resolve_target() muss zuerst erfolgreich aufgerufen werden")
         if self._run is None:
             self._run = RunFolder(self._base)
         return self._run.module_dir(name)
