@@ -22,7 +22,10 @@ class ColorProgressBar(ctk.CTkFrame):
 
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        self._bar = ctk.CTkProgressBar(self)
+        # Feste, ausreichende Hoehe: der Balken bestimmt die Rahmenhoehe, und
+        # das mittig platzierte Prozentlabel (11px, fett) braucht Platz, sonst
+        # wird die Zahl oben/unten abgeschnitten.
+        self._bar = ctk.CTkProgressBar(self, height=24)
         self._bar.set(0)
         self._bar.pack(fill="x", expand=True)
         # Prozentlabel mittig ueber dem Balken.

@@ -8,6 +8,39 @@ from pathlib import Path
 from core import personal_data as pd
 
 
+class DiskReservationTests(unittest.TestCase):
+    def test_no_files_no_slack(self):
+        self.assertEqual(pd.disk_reservation(0, 0, 4096), 0)
+
+    def test_adds_one_cluster_per_file(self):
+        self.assertEqual(pd.disk_reservation(1000, 1, 4096), 1000 + 4096)
+        self.assertEqual(pd.disk_reservation(10_000, 3, 131072), 10_000 + 3 * 131072)
+
+    def test_is_upper_bound_of_real_on_disk_size(self):
+        # Reale Belegung = sum(ceil(size/cluster)*cluster); die Reservierung
+        # darf sie nie unterschaetzen.
+        cluster = 4096
+        sizes = [1, 4096, 4097, 100_000, 0]
+        real = sum(-(-s // cluster) * cluster for s in sizes)  # ceil-Division
+        raw = sum(sizes)
+        reservation = pd.disk_reservation(raw, len(sizes), cluster)
+        self.assertGreaterEqual(reservation, real)
+
+    def test_bad_cluster_falls_back(self):
+        self.assertEqual(pd.disk_reservation(500, 2, 0), 500 + 2 * 4096)
+
+
+class ClusterSizeTests(unittest.TestCase):
+    def test_returns_positive_for_existing_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertGreater(pd.cluster_size(tmp), 0)
+
+    def test_returns_positive_for_nonexistent_child(self):
+        # Nicht existierendes Ziel -> sucht existierenden Elternpfad.
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertGreater(pd.cluster_size(Path(tmp) / "gibtsnicht" / "auchnicht"), 0)
+
+
 class FormatBytesTests(unittest.TestCase):
     def test_units(self):
         self.assertEqual(pd._format_bytes(0), "0 B")

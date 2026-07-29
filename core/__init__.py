@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.3.0"  # v1.3.0: Modus-Navigation + Lauf-Ordner + farbiger Balken + Umzugstool-Rebranding
+TOOL_VERSION = "1.3.1"  # v1.3.1: Zurueck-Button Neuinstallation, hoeherer Balken, Cluster-genauer Speicher-Check

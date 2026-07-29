@@ -67,7 +67,7 @@ class App(ctk.CTk):
         )
         self.backup_mode = BackupMode(self.container, on_back=self.show_home)
         self.restore_mode = RestoreMode(self.container, on_back=self.show_home)
-        self.reinstall_screen = ReinstallTab(self.container)
+        self.reinstall_screen = ReinstallTab(self.container, on_back=self.show_home)
         self._screens = [self.home, self.backup_mode, self.restore_mode, self.reinstall_screen]
         self.show_home()
 
