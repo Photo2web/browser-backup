@@ -108,7 +108,7 @@ def backup_profile(
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
     profile_name_part = _sanitize_filename_part(profile.name) or "profil"
-    zip_name = f"browserbackup_{browser.key}_{profile_name_part}_{timestamp}.zip"
+    zip_name = f"umzug_{browser.key}_{profile_name_part}_{timestamp}.zip"
     zip_path = dest_dir / zip_name
 
     locked_files: list[str] = []

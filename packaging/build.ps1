@@ -1,4 +1,4 @@
-# build.ps1 - Erstellt die portable BrowserBackup.exe per PyInstaller.
+# build.ps1 - Erstellt die portable Umzugstool.exe per PyInstaller.
 #
 # Liegt in packaging/, funktioniert aber unabhaengig vom Aufruf-Ort:
 # das Skript wechselt selbst ins Projekt-Root (ein Verzeichnis darueber),
@@ -25,12 +25,12 @@ if (-not (Get-Command pyinstaller -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-Write-Host "Baue BrowserBackup.exe ..." -ForegroundColor Cyan
+Write-Host "Baue Umzugstool.exe ..." -ForegroundColor Cyan
 
-pyinstaller --onefile --windowed --name BrowserBackup --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
+pyinstaller --onefile --windowed --name Umzugstool --icon assets/icon.ico --add-data "assets/icon.ico;assets" --collect-all customtkinter main.py
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "`nFertig: dist\BrowserBackup.exe" -ForegroundColor Green
+    Write-Host "`nFertig: dist\Umzugstool.exe" -ForegroundColor Green
 } else {
     Write-Host "`nBuild fehlgeschlagen (Exit-Code $LASTEXITCODE)." -ForegroundColor Red
     exit $LASTEXITCODE

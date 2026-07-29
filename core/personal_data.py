@@ -220,7 +220,7 @@ def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None)
     if progress_callback:
         progress_callback(0, total, "Sicherung wird vorbereitet ...")
 
-    base = f"browserbackup_data_{folder.key}_{_timestamp()}"
+    base = f"umzug_data_{folder.key}_{_timestamp()}"
 
     if mode == "zip":
         target = dest_dir / f"{base}.zip"

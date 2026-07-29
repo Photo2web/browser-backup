@@ -92,7 +92,7 @@ class BackupTests(unittest.TestCase):
             self.assertEqual(res.mode, "zip")
             self.assertEqual(res.file_count, 2)
             self.assertTrue(res.target.suffix == ".zip")
-            self.assertTrue(res.target.name.startswith("browserbackup_data_documents_"))
+            self.assertTrue(res.target.name.startswith("umzug_data_documents_"))
             with zf_mod.ZipFile(res.target) as z:
                 names = z.namelist()
                 self.assertIn("data/a.txt", names)
