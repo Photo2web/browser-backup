@@ -1,5 +1,5 @@
 """
-restore_tab.py — "Wiederherstellen"-Tab der BrowserBackup-GUI.
+restore_tab.py — "Wiederherstellen"-Tab der Umzugstool-GUI.
 
 Es koennen mehrere Backup-ZIPs auf einmal ausgewaehlt werden (z.B. wenn
 jedes Profil einzeln gesichert wurde, siehe gui/backup_tab.py). Jede ZIP
@@ -26,6 +26,7 @@ from core.processes import is_browser_running, terminate_browser
 from core.restore import read_manifest, restore_profile
 
 from .dialogs import ask_process_warning, ask_yes_no, show_error, show_info
+from .progress import ColorProgressBar
 from .worker import Worker
 
 CHROMIUM_PASSWORD_HINWEIS = (
@@ -111,8 +112,7 @@ class RestoreTab(ctk.CTkFrame):
         # Ohne ausgewaehlte ZIPs gibt es kein installiertes Ziel -> Button gesperrt.
         self._update_start_button_state()
 
-        self.progress_bar = ctk.CTkProgressBar(self)
-        self.progress_bar.set(0)
+        self.progress_bar = ColorProgressBar(self)
         self.progress_bar.pack(fill="x", pady=(0, 8))
 
         self.log_box = ctk.CTkTextbox(self, height=180)
@@ -147,7 +147,7 @@ class RestoreTab(ctk.CTkFrame):
 
     def _choose_zips(self):
         chosen = filedialog.askopenfilenames(
-            parent=self, filetypes=[("BrowserBackup ZIP", "*.zip")], title="Backup-ZIPs auswaehlen"
+            parent=self, filetypes=[("Umzugstool ZIP", "*.zip")], title="Backup-ZIPs auswaehlen"
         )
         if not chosen:
             return
@@ -269,7 +269,7 @@ class RestoreTab(ctk.CTkFrame):
             return
 
         self.start_button.configure(state="disabled", text="Wiederherstellung laeuft ...")
-        self.progress_bar.set(0)
+        self.progress_bar.reset()
         self.log_box.configure(state="normal")
         self.log_box.delete("1.0", "end")
         self.log_box.configure(state="disabled")
@@ -306,7 +306,7 @@ class RestoreTab(ctk.CTkFrame):
                 if kind == "progress":
                     _, current, total, message = item
                     if total:
-                        self.progress_bar.set(current / total)
+                        self.progress_bar.set_fraction(current / total)
                     self._log(message)
 
                 elif kind == "done":
@@ -325,7 +325,7 @@ class RestoreTab(ctk.CTkFrame):
         self.after(100, self._poll_worker)
 
     def _on_restore_done(self, results):
-        self.progress_bar.set(1)
+        self.progress_bar.set_fraction(1.0)
         self.start_button.configure(text="Wiederherstellen")
         self._update_start_button_state()
 
