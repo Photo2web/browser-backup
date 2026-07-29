@@ -1,8 +1,9 @@
-# Design-Spec: Modus-zuerst-Navigation, Lauf-Ordner & farbiger Fortschrittsbalken
+# Design-Spec: Umzugstool — Modus-Navigation, Lauf-Ordner & farbiger Fortschrittsbalken
 
 **Datum:** 2026-07-29
 **Ziel-Version:** v1.3.0
-**Betrifft:** nur die GUI-Schicht (`gui/`); `core/` bleibt weitgehend unangetastet.
+**Betrifft:** vor allem die GUI-Schicht (`gui/`); `core/` nur für die Umbenennung
+der Datei-/Ordner-Präfixe (§9). Produkt wird zu **„Umzugstool — für Windows 10+"**.
 
 ---
 
@@ -22,6 +23,8 @@ Der Umbau stellt auf **Modus-zuerst** um:
    (ein Lauf-Ordner mit Zeitstempel, darin je Modul ein Unterordner) angelegt.
 4. Der **Fortschrittsbalken** bekommt eine Prozentzahl und wechselt seine Farbe
    fließend von Rot (0 %) nach Grün (100 %).
+5. Das Produkt wird von „BrowserBackup" zu **„Umzugstool"** umbenannt, da es
+   längst mehr als Browser-Backups macht (§9).
 
 ---
 
@@ -118,13 +121,13 @@ angelegt; jedes Modul legt darin seinen **Unterordner** an:
 
 ```
 <gewähltes Ziel>/
-└── BrowserBackup_2026-07-29_1130/     ← ein Lauf pro Sichern-Sitzung
+└── Umzug_2026-07-29_1130/             ← ein Lauf pro Sichern-Sitzung
     ├── Browser/                        ← ZIPs der Browser-Profile
     └── PersoenlicheDaten/              ← ZIP/Kopie der persönlichen Ordner
 ```
 
-- **Lauf-Ordner-Name:** `BrowserBackup_<YYYY-MM-DD_HHMM>` (gleiches
-  Zeitstempel-Schema wie die bestehenden Dateinamen in `core/personal_data.py`).
+- **Lauf-Ordner-Name:** `Umzug_<YYYY-MM-DD_HHMM>` (gleiches Zeitstempel-Schema
+  wie die Dateinamen in `core/personal_data.py`).
 - **Modul-Unterordner:** feste Namen `Browser` und `PersoenlicheDaten`.
 
 ### 4.2 Definition „eine Sichern-Sitzung"
@@ -198,10 +201,15 @@ Die vorhandenen `progress_callback`-Aufrufe (current/total/message) werden auf
 - `gui/personal_tab.py` — Split in `PersonalBackupFrame` / `PersonalRestoreFrame`;
   Sicher-Teil callback-basiert; Balken-Widget.
 - `gui/restore_tab.py` — Balken-Widget (Quell-/Zielwahl bleibt).
-- `core/__init__.py` — `TOOL_VERSION = "1.3.0"`.
+- `core/__init__.py` — `TOOL_VERSION = "1.3.0"`, ggf. Produktname-Konstante.
+- **Rebranding** (§9): `core/personal_data.py` (Datei-Präfix), `core/backup.py`
+  (ZIP-Namen, falls Präfix), `gui/app.py` (Titel/About), `packaging/build.ps1`
+  (`--name Umzugstool`), `README.md`, `assets/make_icon.py`, Tests mit
+  Namens-Assertions.
 
-`core/`-Logik (Backup/Restore/Sizes) bleibt unverändert. `build.ps1` bleibt
-unverändert (keine neuen Asset-Dateien dank Laufzeit-Icons).
+`core/`-Backup-/Restore-**Logik** bleibt inhaltlich unverändert (nur
+Namens-Präfixe). Laufzeit-Icons erfordern keine neuen Asset-Dateien; `build.ps1`
+ändert sich nur beim `--name`.
 
 ---
 
@@ -227,12 +235,43 @@ nicht verifizierbar → manueller Test auf dem Zielrechner (wie gehabt).
 
 ## 8. Versionierung
 
-`TOOL_VERSION` → **1.3.0** (neue Navigation + Ordnerstruktur + Balken-Optik,
-abwärtskompatibel; bestehende Backups bleiben lesbar).
+`TOOL_VERSION` → **1.3.0** (neue Navigation + Ordnerstruktur + Balken-Optik +
+Rebranding, abwärtskompatibel; bestehende Backups bleiben lesbar).
 
 ---
 
-## 9. Annahmen & bewusste Grenzen
+## 9. Rebranding: „Umzugstool — für Windows 10+"
+
+Der Produktname wechselt von „BrowserBackup" zu **„Umzugstool"** (Claim
+„für Windows 10+"). Umfang:
+
+- **Fenstertitel** (`gui/app.py`): `Umzugstool v{TOOL_VERSION} — für Windows 10+`.
+- **About-Dialog**: „Umzugstool" statt „BrowserBackup"; Text auf den erweiterten
+  Funktionsumfang (Browser, persönliche Daten, Neuinstallation) angepasst.
+- **EXE-Name** (`packaging/build.ps1`): `--name Umzugstool` → `Umzugstool.exe`
+  (reines ASCII, keine Umlaut-Probleme in Pfaden/Kommandozeile).
+- **Lauf-Ordner-Präfix**: `Umzug_<YYYY-MM-DD_HHMM>` (§4).
+- **Datei-Präfix** persönliche Daten (`core/personal_data.py`):
+  `browserbackup_data_<key>_…` → `umzug_data_<key>_…`. Analog etwaige
+  Präfixe der Browser-ZIPs (`core/backup.py`), sofern vorhanden.
+- **README.md**: Titel/Beschreibung aktualisiert.
+- Betroffene **Tests** (Namens-Assertions, z. B. `tests/test_personal_data.py`)
+  werden auf die neuen Präfixe angepasst.
+
+**Abwärtskompatibilität:** Der Restore ist manifest-basiert
+(`core/restore.py:read_manifest`, interne Kennung z. B. `kind: "personal_data"`)
+— **nicht** dateinamen-basiert. Bereits erstellte Backups (inkl. der aktuell
+laufenden Sicherung mit der alten EXE) bleiben daher voll wiederherstellbar,
+auch nach der Präfix-Umstellung.
+
+**Nicht Teil des Renames:** der Git-Repository-Name (`browser-backup`) und der
+Projekt-Ordner bleiben unverändert (rein extern, kein Funktionsbezug); historische
+Doku-Dateien (`docs/FORTSCHRITT.md`, ältere Specs) werden nicht rückwirkend
+umgeschrieben.
+
+---
+
+## 10. Annahmen & bewusste Grenzen
 
 - **Pillow verfügbar:** wird über customtkinter (CTkImage) mitgeliefert; keine
   neue Abhängigkeit.
