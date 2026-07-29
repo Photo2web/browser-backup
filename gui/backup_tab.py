@@ -1,5 +1,5 @@
 """
-backup_tab.py — "Sichern"-Tab der BrowserBackup-GUI.
+backup_tab.py — "Sichern"-Tab der Umzugstool-GUI.
 
 Alle gefundenen Browser/Profil-Kombinationen erscheinen als Checkliste —
 der Nutzer kann einzelne, mehrere oder per "Alle auswaehlen" alle auf

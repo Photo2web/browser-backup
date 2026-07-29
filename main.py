@@ -1,5 +1,5 @@
 """
-main.py — Einstiegspunkt fuer BrowserBackup.
+main.py — Einstiegspunkt fuer Umzugstool.
 
 Aufruf: python main.py
 """
