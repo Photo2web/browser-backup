@@ -135,7 +135,7 @@ angelegt; jedes Modul legt darin seinen **Unterordner** an:
 `BackupMode` hält `_run_dir: Path | None` (Startwert `None`).
 
 - `module_dir(name: str) -> Path`: legt bei Bedarf den Lauf-Ordner an (falls
-  `_run_dir is None` → `<ziel>/BrowserBackup_<timestamp>/`, merken), dann
+  `_run_dir is None` → `<ziel>/Umzug_<timestamp>/`, merken), dann
   `_run_dir / name`, `mkdir(parents=True, exist_ok=True)`, und gibt ihn zurück.
 - **Erster** Sicher-Klick der Sitzung erzeugt den Lauf-Ordner; **weitere**
   Klicks (egal welches Modul) verwenden denselben (gleicher Zeitstempel).

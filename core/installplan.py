@@ -89,7 +89,7 @@ def build_instruction_markdown(
     installable, manual = _split(apps)
 
     lines: list[str] = [
-        f"# Installationsanweisung - erzeugt am {created:%Y-%m-%d %H:%M} mit BrowserBackup {tool_version}",
+        f"# Installationsanweisung - erzeugt am {created:%Y-%m-%d %H:%M} mit Umzugstool {tool_version}",
         "",
         f"Quelle: {host}",
         "",
@@ -131,7 +131,7 @@ def build_instruction_markdown(
 # PowerShell-Zeichen wie $ und {} nicht mit Python-Formatierung kollidieren.
 _PS_TEMPLATE = r"""<#
     Install-Apps.ps1
-    Erzeugt von BrowserBackup __VERSION__ am __CREATED__.
+    Erzeugt von Umzugstool __VERSION__ am __CREATED__.
 
     Installiert die ausgewaehlten Programme via winget auf einem neuen
     Windows-Rechner.

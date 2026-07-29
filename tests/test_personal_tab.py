@@ -42,6 +42,23 @@ class PersonalFramesSmokeTests(unittest.TestCase):
             root.destroy()
 
     @mock.patch("gui.personal_tab.detect_personal_folders", return_value=[])
+    def test_backup_frame_resets_button_after_error(self, _m):
+        """Regression: Sichern-Button darf nach einem Fehler nicht dauerhaft
+        gesperrt bleiben (Frame wird in App.__init__ nur einmal gebaut)."""
+        from gui.personal_tab import PersonalBackupFrame
+        root = self._root()
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        try:
+            frame = PersonalBackupFrame(root, dir_provider=_FakeProvider(tmp.name))
+            frame.backup_button.configure(state="disabled", text="Sicherung laeuft ...")
+            with mock.patch("gui.personal_tab.show_error"):
+                frame._on_run_error(RuntimeError("x"))
+            self.assertEqual(str(frame.backup_button.cget("state")), "normal")
+            self.assertEqual(frame.backup_button.cget("text"), "Sichern")
+        finally:
+            root.destroy()
+
+    @mock.patch("gui.personal_tab.detect_personal_folders", return_value=[])
     def test_restore_frame_builds(self, _m):
         from gui.personal_tab import PersonalRestoreFrame
         root = self._root()

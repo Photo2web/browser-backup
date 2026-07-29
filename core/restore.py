@@ -1,5 +1,5 @@
 """
-restore.py — Wiederherstellung eines Profils aus einer BrowserBackup-ZIP.
+restore.py — Wiederherstellung eines Profils aus einer Umzugstool-ZIP.
 
 v1-Scope (bestaetigt in Phase 0, siehe PHASE0_NOTIZEN.md): nur
 "vorhandenes Profil ueberschreiben" wird unterstuetzt. "Neues Profil

@@ -260,6 +260,10 @@ class PersonalBackupFrame(_RunFrame):
         lines.append(f"Zielordner: {results[0].target.parent}")
         show_info(self, "Sicherung abgeschlossen", "\n".join(lines))
 
+    def _on_run_error(self, exc):
+        super()._on_run_error(exc)
+        self.backup_button.configure(state="normal", text="Sichern")
+
 
 class PersonalRestoreFrame(_RunFrame):
     """Modus "Wiederherstellen": Persoenliche Ordner aus einem Backup zurueckspielen."""
