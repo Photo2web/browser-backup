@@ -40,9 +40,12 @@ _CATEGORY_TEXT_COLOR = "gray55"
 
 
 class ReinstallTab(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, on_back=None):
         super().__init__(master, fg_color="transparent")
 
+        # Callback zurueck zum Startbildschirm (wie die anderen Modi einen
+        # '‹ Zurueck'-Button haben). None -> kein Button (z.B. in Alt-Tests).
+        self._on_back = on_back
         self.worker = Worker()
         # (InstalledApp, BooleanVar) je installiertem Programm.
         self.items: list[tuple[InstalledApp, ctk.BooleanVar]] = []
@@ -90,6 +93,13 @@ class ReinstallTab(ctk.CTkFrame):
                       command=self._choose_target_dir).grid(row=0, column=1, padx=(8, 0))
 
         # === Oben (fuellt den Rest): Grundausstattung + installierte Programme ===
+        if self._on_back is not None:
+            back_row = ctk.CTkFrame(self, fg_color="transparent")
+            back_row.pack(side="top", fill="x", pady=(0, 4))
+            ctk.CTkButton(back_row, text="‹ Zurueck", width=90, command=self._on_back).pack(side="left")
+            ctk.CTkLabel(back_row, text="Neuinstallation",
+                         font=ctk.CTkFont(size=16, weight="bold")).pack(side="left", padx=8)
+
         ess_header = ctk.CTkFrame(self, fg_color="transparent")
         ess_header.pack(side="top", fill="x")
         ctk.CTkLabel(

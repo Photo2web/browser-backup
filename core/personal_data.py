@@ -166,6 +166,55 @@ def free_space(path) -> int:
     return shutil.disk_usage(str(p)).free
 
 
+def cluster_size(path) -> int:
+    """Groesse einer Zuordnungseinheit (Cluster) des Ziel-Volumes in Bytes.
+
+    Wichtig fuer die Speicherplatz-Pruefung: jede Datei belegt auf dem
+    Datentraeger mindestens einen ganzen Cluster. Bei USB-/exFAT-Platten sind
+    Cluster oft 128 KB+ gross - viele kleine Dateien verschwenden dadurch viel
+    Platz ("Slack"), sodass eine Kopie deutlich groesser wird als die rohe
+    Dateisumme. Ermittelt wird der Wert per Windows-API GetDiskFreeSpaceW.
+    Faellt bei Fehlern/Nicht-Windows auf 4096 Bytes zurueck (typisches NTFS)."""
+    try:
+        p = Path(path)
+        while not p.exists():
+            if p.parent == p:
+                break
+            p = p.parent
+        root = p.anchor or str(p)
+        sectors_per_cluster = ctypes.c_ulong(0)
+        bytes_per_sector = ctypes.c_ulong(0)
+        free_clusters = ctypes.c_ulong(0)
+        total_clusters = ctypes.c_ulong(0)
+        ok = ctypes.windll.kernel32.GetDiskFreeSpaceW(
+            ctypes.c_wchar_p(root),
+            ctypes.byref(sectors_per_cluster),
+            ctypes.byref(bytes_per_sector),
+            ctypes.byref(free_clusters),
+            ctypes.byref(total_clusters),
+        )
+        size = sectors_per_cluster.value * bytes_per_sector.value
+        if ok and size > 0:
+            return size
+    except (AttributeError, OSError, ValueError):
+        pass
+    return 4096
+
+
+def disk_reservation(raw_bytes: int, file_count: int, cluster: int) -> int:
+    """Konservative Obergrenze fuer den tatsaechlichen Platzbedarf auf dem
+    Ziel-Datentraeger (inkl. Cluster-Verschnitt).
+
+    Die reale Belegung ist ``sum(ceil(groesse_i / cluster) * cluster)``; ohne
+    die Einzelgroessen gilt garantiert ``<= raw_bytes + file_count * cluster``
+    (jede Datei rundet um hoechstens einen Cluster auf). Diese Obergrenze
+    unterschaetzt den Bedarf nie -> die Platte laeuft nicht mehr ueber.
+    Fuer den ZIP-Modus (eine Datei pro Ordner) ``file_count`` klein waehlen."""
+    if cluster <= 0:
+        cluster = 4096
+    return raw_bytes + max(0, file_count) * cluster
+
+
 @dataclass
 class PersonalBackupResult:
     target: Path

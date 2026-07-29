@@ -20,12 +20,18 @@ from core.personal_data import (
     PersonalFolder,
     _format_bytes,
     backup_personal_folder,
+    cluster_size,
     detect_personal_folders,
+    disk_reservation,
     folder_size,
     free_space,
     read_backup_manifest,
     restore_personal_folder,
 )
+
+# Kleine Restmarge auf die (bereits konservative) Cluster-Schaetzung, damit
+# auch Dateisystem-Metadaten/Verzeichniseintraege noch Luft haben.
+_SPACE_SAFETY = 1.02
 
 from .dialogs import ask_conflict_mode, show_error, show_info
 from .progress import ColorProgressBar
@@ -98,6 +104,8 @@ class PersonalBackupFrame(_RunFrame):
         self.backup_items: list[tuple[PersonalFolder, ctk.BooleanVar, ctk.CTkLabel]] = []
         self.mode_var = ctk.StringVar(value="zip")
         self._sizes: dict[str, int] = {}
+        # Dateianzahl je Ordner - fuer die Cluster-genaue Speicherplatz-Pruefung.
+        self._counts: dict[str, int] = {}
         self._sizes_loaded = False
         self._build()
 
@@ -154,7 +162,8 @@ class PersonalBackupFrame(_RunFrame):
         existing = [f for f, _v, _l in self.backup_items if f.exists]
 
         def run(_progress):
-            return {f.key: folder_size(f.path).total_bytes for f in existing}
+            # Groesse UND Dateianzahl je Ordner (Anzahl -> Cluster-Verschnitt).
+            return {f.key: folder_size(f.path) for f in existing}
 
         self.worker.start(run)
         self.after(120, self._poll_sizes)
@@ -177,12 +186,14 @@ class PersonalBackupFrame(_RunFrame):
             pass
         self.after(120, self._poll_sizes)
 
-    def _on_sizes_loaded(self, sizes: dict):
-        self._sizes = sizes
+    def _on_sizes_loaded(self, results: dict):
+        # results: {key: FolderSize}. Groesse + Dateianzahl getrennt merken.
+        self._sizes = {key: fs.total_bytes for key, fs in results.items()}
+        self._counts = {key: fs.file_count for key, fs in results.items()}
         self._sizes_loaded = True
         for folder, _var, label in self.backup_items:
-            if folder.key in sizes:
-                label.configure(text=_format_bytes(sizes[folder.key]))
+            if folder.key in self._sizes:
+                label.configure(text=_format_bytes(self._sizes[folder.key]))
         self._update_totals()
         self.backup_button.configure(state="normal", text="Sichern")
 
@@ -217,21 +228,36 @@ class PersonalBackupFrame(_RunFrame):
                        "Die Ordnergroessen werden noch ermittelt. Bitte einen Moment warten "
                        "und erneut auf 'Sichern' klicken.")
             return
-        needed = sum(self._sizes.get(f.key, 0) for f in selected)
+
+        mode = self.mode_var.get()
         try:
             free = free_space(dest_base)
         except OSError as exc:
             show_error(self, "Zielordner", f"Zielordner nicht nutzbar:\n{exc}")
             return
+
+        # Cluster-genaue Pruefung: im Kopie-Modus belegt jede Datei mind. einen
+        # ganzen Cluster (Slack), im ZIP-Modus entsteht nur eine Datei pro
+        # Ordner (vernachlaessigbarer Slack). Plus kleine Restmarge.
+        cluster = cluster_size(dest_base)
+        if mode == "copy":
+            needed = sum(disk_reservation(self._sizes.get(f.key, 0),
+                                          self._counts.get(f.key, 0), cluster)
+                         for f in selected)
+        else:
+            needed = sum(disk_reservation(self._sizes.get(f.key, 0), 1, cluster)
+                         for f in selected)
+        needed = int(needed * _SPACE_SAFETY)
+
         if needed > free:
             show_error(self, "Zu wenig Speicherplatz",
-                       f"Benoetigt (max.): {_format_bytes(needed)}\n"
+                       f"Benoetigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
                        f"Frei am Ziel: {_format_bytes(free)}\n\n"
-                       "Bitte Ziel mit mehr Platz waehlen oder weniger Ordner auswaehlen.")
+                       "Bitte Ziel mit mehr Platz waehlen oder weniger Ordner auswaehlen.\n"
+                       "Tipp: Der ZIP-Modus braucht bei vielen kleinen Dateien deutlich "
+                       "weniger Platz als eine 1:1-Kopie.")
             return
         dest = self.dir_provider.module_dir("PersoenlicheDaten")
-
-        mode = self.mode_var.get()
         self.backup_button.configure(state="disabled", text="Sicherung laeuft ...")
         self.progress_bar.reset()
         self._log(f"Sichere {len(selected)} Ordner ({mode}) ...")
@@ -343,6 +369,7 @@ class PersonalRestoreFrame(_RunFrame):
 
         jobs = []
         needed_per_drive: dict[str, int] = {}
+        cluster_per_drive: dict[str, int] = {}
         for manifest, source, entry in self.restore_rows:
             target = entry.get().strip()
             if not target:
@@ -351,11 +378,18 @@ class PersonalRestoreFrame(_RunFrame):
             target_path = Path(target)
             jobs.append((source, target_path))
             drive = target_path.anchor or str(target_path)
-            needed_per_drive[drive] = needed_per_drive.get(drive, 0) + int(manifest.get("total_bytes", 0))
+            # Beim Restore werden immer Einzeldateien geschrieben (auch aus ZIP)
+            # -> Cluster-Verschnitt am Ziel-Laufwerk einrechnen.
+            if drive not in cluster_per_drive:
+                cluster_per_drive[drive] = cluster_size(target_path)
+            reservation = disk_reservation(int(manifest.get("total_bytes", 0)),
+                                           int(manifest.get("file_count", 0)),
+                                           cluster_per_drive[drive])
+            needed_per_drive[drive] = needed_per_drive.get(drive, 0) + reservation
 
-        # Speicherplatz am Ziel pruefen (Spec §5/§6). total_bytes im Manifest ist
-        # die tatsaechlich gesicherte Rohgroesse -> konservative Obergrenze fuer den Restore.
+        # Speicherplatz am Ziel pruefen (Spec §5/§6), inkl. Cluster-Verschnitt + Restmarge.
         for drive, needed in needed_per_drive.items():
+            needed = int(needed * _SPACE_SAFETY)
             try:
                 free = free_space(drive)
             except OSError:
@@ -363,7 +397,7 @@ class PersonalRestoreFrame(_RunFrame):
             if needed > free:
                 show_error(self, "Zu wenig Speicherplatz",
                            f"Ziel-Laufwerk {drive}\n"
-                           f"Benoetigt (max.): {_format_bytes(needed)}\n"
+                           f"Benoetigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
                            f"Frei: {_format_bytes(free)}\n\n"
                            "Bitte Platz schaffen oder weniger Backups auswaehlen.")
                 return
