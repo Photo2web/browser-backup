@@ -108,6 +108,8 @@ class RestoreTab(ctk.CTkFrame):
 
         self.start_button = ctk.CTkButton(self, text="Wiederherstellen", command=self._on_start_clicked)
         self.start_button.pack(pady=(0, 12))
+        # Ohne ausgewaehlte ZIPs gibt es kein installiertes Ziel -> Button gesperrt.
+        self._update_start_button_state()
 
         self.progress_bar = ctk.CTkProgressBar(self)
         self.progress_bar.set(0)
@@ -125,6 +127,15 @@ class RestoreTab(ctk.CTkFrame):
             ctk.CTkLabel(
                 self.list_frame, text="Noch keine ZIP-Dateien ausgewaehlt.", text_color="gray60"
             ).pack(anchor="w", padx=8, pady=8)
+
+    def _update_start_button_state(self):
+        """Aktiviert den Wiederherstellen-Button nur, wenn mindestens ein
+        ausgewaehltes Backup einem installierten Ziel-Browser zugeordnet ist.
+        Ohne installiertes Ziel waere ein Klick wirkungslos (nichts wird
+        zurueckgespielt) -> Button bleibt gesperrt statt erst beim Klick zu
+        meckern."""
+        has_target = any(c.browser is not None for c in self.candidates)
+        self.start_button.configure(state="normal" if has_target else "disabled")
 
     def _log(self, message: str):
         self.log_box.configure(state="normal")
@@ -162,6 +173,7 @@ class RestoreTab(ctk.CTkFrame):
             self._add_row(candidate)
 
         self._refresh_placeholder()
+        self._update_start_button_state()
 
     def _add_row(self, candidate: _Candidate):
         row = ctk.CTkFrame(self.list_frame, fg_color="transparent")
@@ -172,9 +184,10 @@ class RestoreTab(ctk.CTkFrame):
 
         if candidate.browser is None:
             candidate.var = ctk.BooleanVar(value=False)
+            browser_key = candidate.manifest.get("browser", "?")
             text = (
-                f"{candidate.manifest.get('browser', '?')} – {source_profile}  "
-                f"(Browser hier nicht installiert, wird uebersprungen)"
+                f"{browser_key} – {source_profile}  "
+                f"(Browser nicht installiert - bitte zuerst installieren, siehe Tab Neuinstallation)"
             )
             checkbox = ctk.CTkCheckBox(row, text=text, variable=candidate.var, state="disabled")
             checkbox.pack(side="left", anchor="w")
@@ -313,7 +326,8 @@ class RestoreTab(ctk.CTkFrame):
 
     def _on_restore_done(self, results):
         self.progress_bar.set(1)
-        self.start_button.configure(state="normal", text="Wiederherstellen")
+        self.start_button.configure(text="Wiederherstellen")
+        self._update_start_button_state()
 
         total_restored = sum(result.restored_files for _, _, result in results)
         total_locked = sum(len(result.locked_files) for _, _, result in results)
@@ -343,6 +357,7 @@ class RestoreTab(ctk.CTkFrame):
         show_info(self, "Wiederherstellung abgeschlossen", "\n".join(summary_lines))
 
     def _on_restore_error(self, exc: Exception):
-        self.start_button.configure(state="normal", text="Wiederherstellen")
+        self.start_button.configure(text="Wiederherstellen")
+        self._update_start_button_state()
         self._log(f"\nFEHLER: {exc}")
         show_error(self, "Fehler bei der Wiederherstellung", str(exc))

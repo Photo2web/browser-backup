@@ -353,3 +353,23 @@ Spezifikation: `docs/NEUINSTALLATION_SPEC.md` (freigegeben). Version → 1.1.0.
 - msstore-Installation nutzt `--source msstore`; ob jedes msstore-Paket ohne
   Store-Anmeldung unbeaufsichtigt durchlaeuft, zeigt erst der Zielrechner.
 - winget-Verfuegbarkeit auf dem Quellrechner vorausgesetzt (Windows 11).
+
+## v1.2 — Persönliche Daten sichern & wiederherstellen
+
+### Erledigt
+- Neues Kernmodul `core/personal_data.py`: Known-Folder-Erkennung
+  (Dokumente/Bilder/Musik/Videos/Desktop/Downloads via SHGetKnownFolderPath,
+  respektiert OneDrive/NextCloud-Umleitung), Größe/freier Platz, Sicherung als
+  ZIP oder 1:1-Kopie (Manifest mit `folder_key`), Wiederherstellung mit
+  Konfliktverhalten (skip/overwrite/newer).
+- Neuer Tab `gui/personal_tab.py` (intern Sichern/Wiederherstellen), Größen-
+  anzeige, Speicherplatz-Prüfung (Quelle-Auswahl vs. freier Platz am Ziel),
+  determinierter Fortschrittsbalken.
+- Tests `tests/test_personal_data.py` + `tests/test_personal_tab.py`.
+
+### Offen / Annahmen
+- **Speicherbedarf** wird konservativ als Rohgröße geschätzt (ZIP kann kleiner
+  sein) — nie zu optimistisch.
+- **Lange Pfade (>260 Zeichen):** noch nicht per `\\?\`-Präfix abgesichert.
+- Echter Restore der Nutzerordner wird erst auf dem neuen Gerät end-to-end
+  getestet; Unit-Tests decken die Logik gegen Temp-Ordner ab.
