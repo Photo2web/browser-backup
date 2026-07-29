@@ -1,43 +1,94 @@
-"""Headless-Smoke-Test fuer den Persoenliche-Daten-Tab (keine echten Nutzerordner)."""
+"""Headless-Smoke-Tests fuer die Persoenliche-Daten-Frames (keine echten Nutzerordner)."""
 import tempfile
 import unittest
 from pathlib import Path
-
-import customtkinter as ctk
-
-from core import personal_data as pd
-import gui.personal_tab as ptab
+from unittest import mock
 
 
-class PersonalTabBuildTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.root = ctk.CTk()
-        cls.root.withdraw()
+class _FakeProvider:
+    def __init__(self, base):
+        self.base = Path(base)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.root.destroy()
+    def resolve_target(self):
+        return self.base
+
+    def module_dir(self, name):
+        d = self.base / "Umzug_test" / name
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+
+class PersonalFramesSmokeTests(unittest.TestCase):
+    def _root(self):
+        import customtkinter as ctk
+        try:
+            root = ctk.CTk()
+        except Exception as exc:
+            self.skipTest(f"kein Tk verfuegbar: {exc}")
+        root.withdraw()
+        return root
+
+    @mock.patch("gui.personal_tab.detect_personal_folders", return_value=[])
+    def test_backup_frame_builds_with_provider(self, _m):
+        from gui.personal_tab import PersonalBackupFrame
+        from gui.progress import ColorProgressBar
+        root = self._root()
+        tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
+        try:
+            frame = PersonalBackupFrame(root, dir_provider=_FakeProvider(tmp.name))
+            self.assertFalse(hasattr(frame, "backup_target"))
+            self.assertIsInstance(frame.progress_bar, ColorProgressBar)
+        finally:
+            root.destroy()
+
+    @mock.patch("gui.personal_tab.detect_personal_folders", return_value=[])
+    def test_restore_frame_builds(self, _m):
+        from gui.personal_tab import PersonalRestoreFrame
+        root = self._root()
+        try:
+            PersonalRestoreFrame(root)
+        finally:
+            root.destroy()
+
+
+class PersonalBackupFrameSelectionTests(unittest.TestCase):
+    """Verhaltensbewahrung: Groessen-Auswahl-Logik nach dem Split."""
+
+    def _root(self):
+        import customtkinter as ctk
+        try:
+            root = ctk.CTk()
+        except Exception as exc:
+            self.skipTest(f"kein Tk verfuegbar: {exc}")
+        root.withdraw()
+        return root
 
     def test_builds_with_mocked_folders_and_gathers_selection(self):
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        src = Path(tmp.name) / "Documents"
-        src.mkdir()
-        (src / "a.txt").write_bytes(b"x")
+        from core import personal_data as pd
+        import gui.personal_tab as ptab
 
-        fake = [pd.PersonalFolder("documents", "Dokumente", src, True)]
-        orig = ptab.detect_personal_folders
-        ptab.detect_personal_folders = lambda: fake
+        root = self._root()
         try:
-            tab = ptab.PersonalDataTab(self.root)
-        finally:
-            ptab.detect_personal_folders = orig
+            tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(tmp.cleanup)
+            src = Path(tmp.name) / "Documents"
+            src.mkdir()
+            (src / "a.txt").write_bytes(b"x")
 
-        # Standard-Modus ist ZIP, ein Ordner in der Backup-Checkliste.
-        self.assertEqual(tab.mode_var.get(), "zip")
-        self.assertEqual(len(tab.backup_items), 1)
-        tab.backup_items[0][1].set(True)
-        selected = tab._gather_backup_selection()
-        self.assertEqual(len(selected), 1)
-        self.assertEqual(selected[0].key, "documents")
+            fake = [pd.PersonalFolder("documents", "Dokumente", src, True)]
+            orig = ptab.detect_personal_folders
+            ptab.detect_personal_folders = lambda: fake
+            try:
+                frame = ptab.PersonalBackupFrame(root, dir_provider=_FakeProvider(tmp.name))
+            finally:
+                ptab.detect_personal_folders = orig
+
+            # Standard-Modus ist ZIP, ein Ordner in der Backup-Checkliste.
+            self.assertEqual(frame.mode_var.get(), "zip")
+            self.assertEqual(len(frame.backup_items), 1)
+            frame.backup_items[0][1].set(True)
+            selected = frame._gather_backup_selection()
+            self.assertEqual(len(selected), 1)
+            self.assertEqual(selected[0].key, "documents")
+        finally:
+            root.destroy()
