@@ -7,8 +7,6 @@ einmal sichern (jede Kombination landet in einer eigenen ZIP-Datei).
 """
 
 import queue
-from pathlib import Path
-from tkinter import filedialog
 
 import customtkinter as ctk
 
@@ -17,6 +15,7 @@ from core.browsers import Browser, Profile, detect_browsers
 from core.processes import is_browser_running, terminate_browser
 
 from .dialogs import ask_process_warning, show_error, show_info
+from .progress import ColorProgressBar
 from .worker import Worker
 
 # Deutlicher Hinweis aus PROJEKT.md §6.2 — wird gezeigt, sobald mindestens
@@ -29,9 +28,12 @@ CHROMIUM_PASSWORD_HINWEIS = (
 
 
 class BackupTab(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, dir_provider):
         super().__init__(master, fg_color="transparent")
 
+        # Liefert Zielordner/Modul-Unterordner (siehe BackupMode) statt eines
+        # eigenen Ziel-Feldes.
+        self.dir_provider = dir_provider
         self.browsers: list[Browser] = detect_browsers()
         self.worker = Worker()
         # (Browser, Profile, BooleanVar) je Zeile in der Checkliste.
@@ -60,27 +62,17 @@ class BackupTab(ctk.CTkFrame):
         form.pack(fill="x", pady=(0, 12))
         form.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(form, text="Zielordner:").grid(row=0, column=0, sticky="w", padx=12, pady=8)
-        target_frame = ctk.CTkFrame(form, fg_color="transparent")
-        target_frame.grid(row=0, column=1, sticky="ew", padx=12, pady=8)
-        target_frame.grid_columnconfigure(0, weight=1)
-
-        self.target_entry = ctk.CTkEntry(target_frame, placeholder_text="Zielordner fuer die ZIP-Dateien")
-        self.target_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(target_frame, text="Durchsuchen ...", width=110, command=self._choose_target_dir).grid(
-            row=0, column=1, padx=(8, 0)
-        )
-
+        # Zielordner kommt jetzt vom dir_provider (Sichern-Modus-Container) -
+        # kein eigenes Ziel-Feld mehr hier.
         self.exclude_cache_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             form, text="Cache/temporaere Daten ausschliessen", variable=self.exclude_cache_var
-        ).grid(row=1, column=1, sticky="w", padx=12, pady=(0, 8))
+        ).grid(row=0, column=1, sticky="w", padx=12, pady=8)
 
         self.start_button = ctk.CTkButton(self, text="Sichern", command=self._on_start_clicked)
         self.start_button.pack(pady=(0, 12))
 
-        self.progress_bar = ctk.CTkProgressBar(self)
-        self.progress_bar.set(0)
+        self.progress_bar = ColorProgressBar(self)
         self.progress_bar.pack(fill="x", pady=(0, 8))
 
         self.log_box = ctk.CTkTextbox(self, height=200)
@@ -112,12 +104,6 @@ class BackupTab(ctk.CTkFrame):
         for _, _, var in self.items:
             var.set(False)
 
-    def _choose_target_dir(self):
-        chosen = filedialog.askdirectory(parent=self)
-        if chosen:
-            self.target_entry.delete(0, "end")
-            self.target_entry.insert(0, chosen)
-
     def _log(self, message: str):
         self.log_box.configure(state="normal")
         self.log_box.insert("end", message + "\n")
@@ -135,11 +121,10 @@ class BackupTab(ctk.CTkFrame):
             show_error(self, "Keine Auswahl", "Bitte mindestens ein Profil auswaehlen.")
             return
 
-        dest_text = self.target_entry.get().strip()
-        if not dest_text:
-            show_error(self, "Kein Zielordner", "Bitte einen Zielordner fuer die Sicherung auswaehlen.")
+        dest_base = self.dir_provider.resolve_target()
+        if dest_base is None:
             return
-        dest_dir = Path(dest_text)
+        dest_dir = self.dir_provider.module_dir("Browser")
 
         # Jeden betroffenen Browser nur einmal auf "laeuft gerade" pruefen,
         # auch wenn mehrere seiner Profile ausgewaehlt sind.
@@ -157,7 +142,7 @@ class BackupTab(ctk.CTkFrame):
         exclude_cache = self.exclude_cache_var.get()
 
         self.start_button.configure(state="disabled", text="Sicherung laeuft ...")
-        self.progress_bar.set(0)
+        self.progress_bar.reset()
         self.log_box.configure(state="normal")
         self.log_box.delete("1.0", "end")
         self.log_box.configure(state="disabled")
@@ -189,7 +174,7 @@ class BackupTab(ctk.CTkFrame):
                 if kind == "progress":
                     _, current, total, message = item
                     if total:
-                        self.progress_bar.set(current / total)
+                        self.progress_bar.set_fraction(current / total)
                     self._log(message)
 
                 elif kind == "done":
@@ -208,7 +193,7 @@ class BackupTab(ctk.CTkFrame):
         self.after(100, self._poll_worker)
 
     def _on_backup_done(self, results):
-        self.progress_bar.set(1)
+        self.progress_bar.set_fraction(1.0)
         self.start_button.configure(state="normal", text="Sichern")
 
         total_files = sum(result.file_count for _, _, result in results)
