@@ -57,6 +57,8 @@ class HomeScreen(ctk.CTkFrame):
 
         label = ctk.CTkLabel(self, text="", image=normal, fg_color="transparent")
         label.place(relx=relx, rely=rely, anchor="center")
+        # Explizit ueber das Hintergrund-Label heben (Stapelreihenfolge sichern).
+        label.lift(self._bg_label)
         label.bind("<Button-1>", lambda _e, c=command: c())
         label.bind("<Enter>", lambda _e, lbl=label, h=hover: lbl.configure(image=h))
         label.bind("<Leave>", lambda _e, lbl=label, n=normal: lbl.configure(image=n))
@@ -79,4 +81,6 @@ class HomeScreen(ctk.CTkFrame):
         image = home_background(width, height, title=_TITLE)
         self._bg_photo = ImageTk.PhotoImage(image)
         self._bg_label.configure(image=self._bg_photo)
-        self._bg_label.lower()   # hinter die Kacheln
+        # NICHT .lower() aufrufen: das wuerde das Label unter die interne
+        # Zeichenflaeche des CTkFrame schieben und damit unsichtbar machen. Die
+        # Kacheln liegen ueber dem Label, weil sie danach erzeugt+gehoben werden.

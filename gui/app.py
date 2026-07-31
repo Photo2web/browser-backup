@@ -21,6 +21,8 @@ from .dialogs import show_info
 from .home_screen import HomeScreen
 from .reinstall_tab import ReinstallTab
 from .restore_mode import RestoreMode
+from .theme import (ACCENT, CORNER, PANEL_BG, PANEL_BORDER, TEXT_MUTED,
+                    WINDOW_BG, apply_purple_theme)
 from .uninstall_screen import UninstallScreen
 
 
@@ -28,10 +30,9 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
-        # Kompaktere Schrift/Widgets (Nutzerwunsch) - spart zugleich Hoehe.
-        ctk.set_widget_scaling(0.8)
+        # Einheitliches Lila-Glas-Farbschema (Dark-Mode + kompakte Skalierung).
+        apply_purple_theme()
+        self.configure(fg_color=WINDOW_BG)
 
         self.title(f"Umzugstool v{TOOL_VERSION} - fuer Windows 10+")
         self._set_window_icon()
@@ -57,42 +58,57 @@ class App(ctk.CTk):
         )
         self.menu_button.pack(side="right")
 
-        self.container = ctk.CTkFrame(self, fg_color="transparent")
-        self.container.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+        # Content-Box als rundes Lila-Glas-Panel (dezente Kante). Der Fensterrand
+        # (dunkleres Lila) rahmt das Panel; darin sitzen die Screens.
+        self.panel = ctk.CTkFrame(self, fg_color=PANEL_BG, corner_radius=CORNER,
+                                  border_width=1, border_color=PANEL_BORDER)
+        self.panel.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+
+        # Dezente Branding-Fusszeile ganz unten im Panel (immer sichtbar).
+        self.branding = ctk.CTkLabel(
+            self.panel,
+            text=f"© 2026 photo2web · Umzugstool v{TOOL_VERSION}",
+            text_color=TEXT_MUTED, font=ctk.CTkFont(size=11))
+        self.branding.pack(side="bottom", pady=(0, 8))
 
         self.home = HomeScreen(
-            self.container,
+            self.panel,
             on_backup=lambda: self.show_mode("backup"),
             on_restore=lambda: self.show_mode("restore"),
             on_reinstall=lambda: self.show_mode("reinstall"),
             on_uninstall=lambda: self.show_mode("uninstall"),
         )
-        self.backup_mode = BackupMode(self.container, on_back=self.show_home)
-        self.restore_mode = RestoreMode(self.container, on_back=self.show_home)
-        self.reinstall_screen = ReinstallTab(self.container, on_back=self.show_home)
-        self.uninstall_screen = UninstallScreen(self.container, on_back=self.show_home)
+        self.backup_mode = BackupMode(self.panel, on_back=self.show_home)
+        self.restore_mode = RestoreMode(self.panel, on_back=self.show_home)
+        self.reinstall_screen = ReinstallTab(self.panel, on_back=self.show_home)
+        self.uninstall_screen = UninstallScreen(self.panel, on_back=self.show_home)
         self._screens = [self.home, self.backup_mode, self.restore_mode,
                          self.reinstall_screen, self.uninstall_screen]
         self.show_home()
 
+    # Screens sitzen im Glas-Panel: etwas Innenabstand laesst die runde Kante
+    # sichtbar, die Branding-Fusszeile (side="bottom") bleibt darunter frei.
+    _SCREEN_PACK = {"side": "top", "fill": "both", "expand": True,
+                    "padx": 8, "pady": (8, 4)}
+
     def show_home(self) -> None:
         for s in self._screens:
             s.pack_forget()
-        self.home.pack(fill="both", expand=True)
+        self.home.pack(**self._SCREEN_PACK)
 
     def show_mode(self, name: str) -> None:
         for s in self._screens:
             s.pack_forget()
         if name == "backup":
-            self.backup_mode.pack(fill="both", expand=True)
+            self.backup_mode.pack(**self._SCREEN_PACK)
             self.backup_mode.on_show()
         elif name == "restore":
-            self.restore_mode.pack(fill="both", expand=True)
+            self.restore_mode.pack(**self._SCREEN_PACK)
         elif name == "reinstall":
-            self.reinstall_screen.pack(fill="both", expand=True)
+            self.reinstall_screen.pack(**self._SCREEN_PACK)
             self.reinstall_screen.on_show()
         elif name == "uninstall":
-            self.uninstall_screen.pack(fill="both", expand=True)
+            self.uninstall_screen.pack(**self._SCREEN_PACK)
             self.uninstall_screen.on_show()
 
     def _set_window_icon(self) -> None:
@@ -110,9 +126,9 @@ class App(ctk.CTk):
     def _open_menu(self) -> None:
         """Oeffnet das Menue oben rechts (Copyright / Hilfe) als Dropdown."""
         menu = tk.Menu(self, tearoff=0)
-        # An das Dark-Theme angelehnt einfaerben.
+        # An das Lila-Glas-Theme angelehnt einfaerben.
         menu.configure(
-            bg="#2b2b2b", fg="#dcdcdc", bd=0, activebackground="#1f6aa5",
+            bg=PANEL_BG, fg="#dcdcdc", bd=0, activebackground=ACCENT,
             activeforeground="white", relief="flat",
         )
         menu.add_command(label="Copyright / Ueber", command=self._show_about)

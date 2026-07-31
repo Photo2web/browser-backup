@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.4.3"  # v1.4.3: Kreativer Lila-Hintergrund (Radialverlauf + Leucht-Blobs) auf dem Startbildschirm
+TOOL_VERSION = "1.4.4"  # v1.4.4: Einheitliches Lila-Glas-Design (Theme, rundes Panel, Branding-Fusszeile)
