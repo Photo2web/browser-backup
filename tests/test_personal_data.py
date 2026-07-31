@@ -256,3 +256,73 @@ class RestoreTests(unittest.TestCase):
             res = pd.restore_personal_folder(copy_target, dest, conflict="newer")
             self.assertEqual(older.read_bytes(), b"hello")
             self.assertEqual(res.overwritten, 1)
+
+
+class FindPersonalBackupsTests(unittest.TestCase):
+    """find_personal_backups: Umzugsordner rekursiv nach Datensicherungen scannen."""
+
+    def _make_run_folder(self, root: Path) -> tuple[Path, Path]:
+        """Legt Umzug_x/PersoenlicheDaten/ mit je einem ZIP- und Kopie-Backup an."""
+        pd_dir = root / "Umzug_2026-07-31_1200" / "PersoenlicheDaten"
+        pd_dir.mkdir(parents=True)
+        docs = _make_folder(root, key="documents")   # legt root/src an
+        pd.backup_personal_folder(docs, pd_dir, mode="zip")
+        pics = pd.PersonalFolder(key="pictures", display_name="Bilder",
+                                 path=root / "src", exists=True)
+        pd.backup_personal_folder(pics, pd_dir, mode="copy")
+        return root / "Umzug_2026-07-31_1200", pd_dir
+
+    def test_finds_zip_and_copy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_folder, _pd_dir = self._make_run_folder(root)
+            found = pd.find_personal_backups(run_folder)
+            keys = sorted(m["folder_key"] for _p, m in found)
+            self.assertEqual(keys, ["documents", "pictures"])
+
+    def test_scanning_subfolder_finds_same(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_folder, pd_dir = self._make_run_folder(root)
+            self.assertEqual(len(pd.find_personal_backups(pd_dir)), 2)
+
+    def test_ignores_foreign_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # Passt zum Namenspraefix, hat aber kein gueltiges Manifest -> kein Fund.
+            bad = root / "umzug_data_fake.zip"
+            with zipfile.ZipFile(bad, "w") as z:
+                z.writestr("hello.txt", "x")
+            self.assertEqual(pd.find_personal_backups(root), [])
+
+    def test_ignores_unrelated_named_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "urlaub.zip").write_bytes(b"nicht mal ein zip")
+            self.assertEqual(pd.find_personal_backups(root), [])
+
+    def test_does_not_descend_into_copy_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = _make_folder(root)
+            res = pd.backup_personal_folder(folder, root / "dest", mode="copy")
+            found = pd.find_personal_backups(root)
+            # Genau ein Fund (das Kopie-Backup), kein Doppelfund aus dessen data/.
+            self.assertEqual(len(found), 1)
+            self.assertEqual(found[0][0], res.target)
+
+    def test_empty_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(pd.find_personal_backups(Path(tmp)), [])
+
+    def test_missing_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(pd.find_personal_backups(Path(tmp) / "gibtsnicht"), [])
+
+    def test_sorted_by_display_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_folder, _pd_dir = self._make_run_folder(root)
+            names = [(m.get("folder_display_name") or "") for _p, m in
+                     pd.find_personal_backups(run_folder)]
+            self.assertEqual(names, sorted(names, key=str.lower))

@@ -11,6 +11,7 @@ Worker-Thread (Poll per after()), damit die GUI nicht einfriert.
 """
 
 import queue
+import zipfile
 from pathlib import Path
 from tkinter import filedialog
 
@@ -23,6 +24,7 @@ from core.personal_data import (
     cluster_size,
     detect_personal_folders,
     disk_reservation,
+    find_personal_backups,
     folder_size,
     free_space,
     read_backup_manifest,
@@ -297,8 +299,8 @@ class PersonalRestoreFrame(_RunFrame):
     def __init__(self, master):
         super().__init__(master)
         self.folders: list[PersonalFolder] = detect_personal_folders()
-        # Restore: Liste (manifest, source_path, target_var-Entry)
-        self.restore_rows: list[tuple[dict, Path, ctk.CTkEntry]] = []
+        # Restore: Liste (manifest, source_path, target-Entry, ausgewaehlt-Var)
+        self.restore_rows: list[tuple[dict, Path, ctk.CTkEntry, ctk.BooleanVar]] = []
         self._build()
 
     # -- UI -------------------------------------------------------------
@@ -306,8 +308,13 @@ class PersonalRestoreFrame(_RunFrame):
     def _build(self):
         btns = ctk.CTkFrame(self, fg_color="transparent")
         btns.pack(fill="x")
+        # Neuer Weg: kompletten Umzugsordner waehlen -> Backups automatisch finden.
+        ctk.CTkButton(btns, text="Umzugsordner waehlen ...",
+                      command=self._choose_run_folder).pack(side="left", padx=4)
         ctk.CTkButton(btns, text="Backup-ZIP(s) waehlen ...", command=self._choose_restore_zips).pack(side="left", padx=4)
         ctk.CTkButton(btns, text="Kopie-Ordner waehlen ...", command=self._choose_restore_copy).pack(side="left", padx=4)
+        ctk.CTkButton(btns, text="Alle aus-/abwaehlen", width=140,
+                      command=self._toggle_all_restore).pack(side="right", padx=4)
 
         self.restore_list = ctk.CTkScrollableFrame(self, height=200)
         self.restore_list.pack(fill="both", expand=True, pady=(6, 6))
@@ -319,7 +326,7 @@ class PersonalRestoreFrame(_RunFrame):
                                             command=self._on_restore_clicked)
         self.restore_button.pack(pady=(0, 4))
 
-    # -- Wiederherstellen ----------------------------------------------
+    # -- Backup-Quellen waehlen ----------------------------------------
 
     def _choose_restore_zips(self):
         paths = filedialog.askopenfilenames(parent=self, title="Backup-ZIP(s) waehlen",
@@ -331,33 +338,103 @@ class PersonalRestoreFrame(_RunFrame):
         if chosen:
             self._load_restore_sources([Path(chosen)])
 
-    def _load_restore_sources(self, sources: list[Path]):
-        if not sources:
+    def _choose_run_folder(self):
+        """Umzugsordner (oder PersoenlicheDaten/) waehlen und rekursiv nach
+        Datensicherungen durchsuchen. Der Scan laeuft im Worker-Thread, damit
+        die GUI bei vielen ZIPs nicht einfriert."""
+        if self.worker.is_running():
+            show_info(self, "Bitte warten", "Es laeuft gerade ein anderer Vorgang.")
             return
+        chosen = filedialog.askdirectory(parent=self, title="Umzugsordner waehlen")
+        if not chosen:
+            return
+        root = Path(chosen)
+        self._log(f"Durchsuche {root} nach Datensicherungen ...")
+
+        def run(_progress):
+            return find_personal_backups(root)
+
+        self.worker.start(run)
+        self.after(100, self._poll_scan)
+
+    def _poll_scan(self):
+        try:
+            while True:
+                item = self.worker.queue.get_nowait()
+                if item[0] == "done":
+                    self._on_scan_done(item[1])
+                    return
+                if item[0] == "error":
+                    self._on_run_error(item[1])
+                    return
+        except queue.Empty:
+            pass
+        self.after(100, self._poll_scan)
+
+    def _on_scan_done(self, results: list):
+        self._clear_restore_list()
+        if not results:
+            self.restore_hint = ctk.CTkLabel(
+                self.restore_list,
+                text="Keine persoenlichen Datensicherungen in diesem Ordner gefunden.",
+                text_color="gray70")
+            self.restore_hint.pack(anchor="w", padx=8, pady=8)
+            self._log("Keine Datensicherungen gefunden.")
+            show_info(self, "Nichts gefunden",
+                      "Keine persoenlichen Datensicherungen in diesem Ordner gefunden.")
+            return
+        for path, manifest in results:
+            self._add_restore_row(manifest, path)
+        self._log(f"{len(results)} Datensicherung(en) gefunden.")
+
+    # -- Zeilen-Liste ---------------------------------------------------
+
+    def _clear_restore_list(self):
         for child in self.restore_list.winfo_children():
             child.destroy()
         self.restore_rows = []
+
+    def _add_restore_row(self, manifest: dict, source: Path):
         by_key = {f.key: f for f in self.folders}
+        row = ctk.CTkFrame(self.restore_list, fg_color="transparent")
+        row.pack(fill="x", padx=4, pady=2)
+        var = ctk.BooleanVar(value=True)  # Funde sind per Default angehakt.
+        name = manifest.get("folder_display_name", manifest.get("folder_key", "?"))
+        ctk.CTkCheckBox(row, text=f"{name}  <-  {source.name}", variable=var,
+                        width=0).pack(side="left", padx=(4, 8))
+        target_entry = ctk.CTkEntry(row, width=260)
+        default = by_key.get(manifest.get("folder_key", ""))
+        target_entry.insert(0, str(default.path) if default else "")
+        target_entry.pack(side="left", padx=4)
+        ctk.CTkButton(row, text="Anderer Ordner ...", width=130,
+                      command=lambda e=target_entry: self._choose_dir(e)).pack(side="left", padx=4)
+        self.restore_rows.append((manifest, source, target_entry, var))
+
+    def _load_restore_sources(self, sources: list[Path]):
+        if not sources:
+            return
+        self._clear_restore_list()
         for source in sources:
             try:
                 manifest = read_backup_manifest(source)
-            except (OSError, KeyError, ValueError) as exc:
+            except (OSError, KeyError, ValueError, zipfile.BadZipFile) as exc:
                 self._log(f"Kein gueltiges Backup: {source.name} ({exc})")
                 continue
-            row = ctk.CTkFrame(self.restore_list, fg_color="transparent")
-            row.pack(fill="x", padx=4, pady=2)
-            name = manifest.get("folder_display_name", manifest.get("folder_key", "?"))
-            ctk.CTkLabel(row, text=f"{name}  <-  {source.name}").pack(side="left", padx=(4, 8))
-            target_entry = ctk.CTkEntry(row, width=280)
-            default = by_key.get(manifest.get("folder_key", ""))
-            target_entry.insert(0, str(default.path) if default else "")
-            target_entry.pack(side="left", padx=4)
-            ctk.CTkButton(row, text="Anderen Ordner ...", width=130,
-                          command=lambda e=target_entry: self._choose_dir(e)).pack(side="left", padx=4)
-            self.restore_rows.append((manifest, source, target_entry))
+            self._add_restore_row(manifest, source)
         if not self.restore_rows:
             ctk.CTkLabel(self.restore_list, text="Keine gueltigen Backups gefunden.",
                          text_color="gray70").pack(anchor="w", padx=8, pady=8)
+
+    def _toggle_all_restore(self):
+        if not self.restore_rows:
+            return
+        # Sind alle an -> alle aus, sonst alle an.
+        all_on = all(var.get() for *_rest, var in self.restore_rows)
+        new_value = not all_on
+        for *_rest, var in self.restore_rows:
+            var.set(new_value)
+
+    # -- Wiederherstellen ----------------------------------------------
 
     def _on_restore_clicked(self):
         if self.worker.is_running():
@@ -367,10 +444,16 @@ class PersonalRestoreFrame(_RunFrame):
             show_error(self, "Kein Backup", "Bitte zuerst ein Backup waehlen.")
             return
 
+        selected_rows = [(m, s, e) for m, s, e, v in self.restore_rows if v.get()]
+        if not selected_rows:
+            show_error(self, "Nichts ausgewaehlt",
+                       "Bitte mindestens eine Datensicherung ankreuzen.")
+            return
+
         jobs = []
         needed_per_drive: dict[str, int] = {}
         cluster_per_drive: dict[str, int] = {}
-        for manifest, source, entry in self.restore_rows:
+        for manifest, source, entry in selected_rows:
             target = entry.get().strip()
             if not target:
                 show_error(self, "Kein Ziel", f"Bitte Zielordner fuer {source.name} angeben.")

@@ -333,6 +333,65 @@ def read_backup_manifest(source) -> dict:
     return json.loads((source / "backup_manifest.json").read_text(encoding="utf-8"))
 
 
+# Namenspraefixe gueltiger persoenlicher Datensicherungen (aktuell + abwaertskompatibel).
+_BACKUP_ZIP_PREFIXES = ("umzug_data_", "browserbackup_data_")
+
+
+def _is_personal_manifest(manifest) -> bool:
+    """Prueft, ob ein Manifest zu einer persoenlichen Datensicherung gehoert."""
+    return isinstance(manifest, dict) and manifest.get("kind") == "personal_data"
+
+
+def find_personal_backups(root) -> list[tuple[Path, dict]]:
+    """Durchsucht ``root`` rekursiv nach gueltigen persoenlichen Datensicherungen.
+
+    Findet sowohl ZIP-Backups (Dateiname beginnt mit umzug_data_ bzw.
+    browserbackup_data_ und Manifest ``kind == 'personal_data'``) als auch
+    Kopie-Backups (Verzeichnis mit ``backup_manifest.json``). In ein erkanntes
+    Kopie-Backup wird nicht weiter abgestiegen (dessen ``data/`` wird nicht
+    durchsucht). Defekte oder fremde Dateien werden still uebersprungen.
+
+    So funktioniert die Wahl des kompletten ``Umzug_<Datum>/`` genauso wie die
+    direkte Wahl von ``PersoenlicheDaten/``.
+
+    Liefert ``(pfad, manifest)``-Paare, alphabetisch nach Anzeigename sortiert.
+    """
+    root = Path(root)
+    found: list[tuple[Path, dict]] = []
+    if not root.is_dir():
+        return found
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        current = Path(dirpath)
+        # Kopie-Backup? -> Verzeichnis mit gueltigem Manifest; als ein Fund
+        # werten und nicht weiter absteigen (dessen data/ nicht durchsuchen).
+        if "backup_manifest.json" in filenames:
+            try:
+                manifest = read_backup_manifest(current)
+            except (OSError, KeyError, ValueError, zipfile.BadZipFile):
+                manifest = None
+            if _is_personal_manifest(manifest):
+                found.append((current, manifest))
+                dirnames[:] = []  # nicht in dieses Backup hineinsteigen
+                continue
+        # ZIP-Backups in diesem Verzeichnis (Namenspraefix zuerst pruefen, damit
+        # nicht jedes fremde/grosse ZIP geoeffnet werden muss).
+        for name in filenames:
+            lower = name.lower()
+            if lower.endswith(".zip") and lower.startswith(_BACKUP_ZIP_PREFIXES):
+                zip_path = current / name
+                try:
+                    manifest = read_backup_manifest(zip_path)
+                except (OSError, KeyError, ValueError, zipfile.BadZipFile):
+                    continue
+                if _is_personal_manifest(manifest):
+                    found.append((zip_path, manifest))
+
+    found.sort(key=lambda pm: (pm[1].get("folder_display_name")
+                               or pm[1].get("folder_key") or "").lower())
+    return found
+
+
 def _zip_mtime(zinfo) -> float:
     """mtime eines ZIP-Eintrags aus dessen date_time-Tupel (0.0 bei Fehler)."""
     try:
