@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.4.0"  # v1.4.0: Software entfernen (Registry-Liste, deinstallieren, Wiederherstell-Liste)
+TOOL_VERSION = "1.4.1"  # v1.4.1: Lila-Verlauf-Kacheln (gleich gross), Reload-Hinweis nach Deinstallation

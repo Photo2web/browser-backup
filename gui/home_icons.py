@@ -8,13 +8,42 @@ verpackt es fuer die GUI.
 import customtkinter as ctk
 from PIL import Image, ImageDraw
 
-_ACCENT = (56, 132, 255, 255)   # Blau, passt zum CTk-Theme "blue"
-_LIGHT = (232, 238, 248, 255)
+# Icons liegen auf dem Lila-Verlauf der Startkacheln -> nahezu weisse Formen mit
+# kraeftig-lila Aussparungen fuer guten Kontrast.
+_ACCENT = (245, 242, 255, 255)   # nahezu weiss
+_LIGHT = (98, 42, 178, 255)      # kraeftiges Lila (Detail-Aussparungen)
 
 
 def _canvas(size: int):
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     return img, ImageDraw.Draw(img)
+
+
+def _lerp(a: tuple, b: tuple, t: float) -> tuple:
+    """Lineare Farbinterpolation zwischen zwei RGB-Tupeln."""
+    return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3))
+
+
+def gradient_image(width: int, height: int, radius: int,
+                   top: tuple, bottom: tuple) -> Image.Image:
+    """Vertikaler Farbverlauf (top->bottom) mit abgerundeten Ecken (RGBA)."""
+    base = Image.new("RGB", (width, height))
+    draw = ImageDraw.Draw(base)
+    denom = max(height - 1, 1)
+    for y in range(height):
+        draw.line([(0, y), (width, y)], fill=_lerp(top, bottom, y / denom))
+    img = base.convert("RGBA")
+    mask = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, width - 1, height - 1],
+                                           radius=radius, fill=255)
+    img.putalpha(mask)
+    return img
+
+
+def ctk_gradient(width: int, height: int, radius: int,
+                 top: tuple, bottom: tuple) -> ctk.CTkImage:
+    img = gradient_image(width, height, radius, top, bottom)
+    return ctk.CTkImage(light_image=img, dark_image=img, size=(width, height))
 
 
 def _save(size: int) -> Image.Image:

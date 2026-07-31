@@ -235,10 +235,16 @@ class UninstallScreen(ctk.CTkFrame):
                        f"Deinstallation konnte nicht gestartet werden:\n{exc}")
             return
 
+        # Auswahl zuruecksetzen, damit der naechste Schritt sauber beginnt.
+        self._select_none()
+
         self._log(f"Deinstallation gestartet: {script}")
         show_info(
             self, "Deinstallation gestartet",
             "Der Fortschritt erscheint in einem separaten Fenster. Bei Programmen "
             "fuer alle Benutzer bitte die Windows-Abfrage (UAC) bestaetigen.\n\n"
+            "Wenn das separate Fenster fertig ist, hier auf 'Aktualisieren' klicken - "
+            "dann verschwinden die entfernten Programme aus der Liste und du kannst in "
+            "kleinen Schritten weitere Programme entfernen.\n\n"
             "Die entfernten Programme stehen im Bereich 'Neuinstallation' unter "
             "'Zuletzt entfernte Programme' zum Wiederherstellen bereit.")
