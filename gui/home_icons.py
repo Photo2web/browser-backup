@@ -6,7 +6,7 @@ verpackt es fuer die GUI.
 """
 
 import customtkinter as ctk
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 # Icons liegen auf dem Lila-Verlauf der Startkacheln -> nahezu weisse Formen mit
 # kraeftig-lila Aussparungen fuer guten Kontrast.
@@ -43,6 +43,110 @@ def gradient_image(width: int, height: int, radius: int,
 def ctk_gradient(width: int, height: int, radius: int,
                  top: tuple, bottom: tuple) -> ctk.CTkImage:
     img = gradient_image(width, height, radius, top, bottom)
+    return ctk.CTkImage(light_image=img, dark_image=img, size=(width, height))
+
+
+# ---------------------------------------------------------------------------
+# Komplette Kachel als ein Bild (Panel + Rand + Icon + Text)
+#
+# Wird als EINE Grafik gerendert, damit kein ueberlagertes "transparentes"
+# Text-Label die dunkle Fensterfarbe durchscheinen laesst (schwarzer Kasten).
+# Gerendert wird in doppelter Aufloesung (Supersampling) fuer scharfen Text.
+# ---------------------------------------------------------------------------
+
+_SS = 2  # Supersampling-Faktor
+
+# Panel-Verlauf (dunkles, edles Lila) - normal und beim Ueberfahren etwas heller.
+_PANEL_TOP = (74, 52, 138)
+_PANEL_BOTTOM = (40, 24, 74)
+_PANEL_TOP_HOVER = (94, 68, 168)
+_PANEL_BOTTOM_HOVER = (54, 34, 96)
+_BORDER = (140, 104, 220, 220)
+_BORDER_HOVER = (180, 146, 255, 255)
+_TITLE_COLOR = (245, 242, 255, 255)
+_SUBTITLE_COLOR = (190, 176, 224, 255)
+
+
+def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    """Laedt eine System-Schrift (Segoe UI, sonst Arial); Fallback Default."""
+    candidates = ([r"C:\Windows\Fonts\segoeuib.ttf", r"C:\Windows\Fonts\arialbd.ttf"]
+                  if bold else
+                  [r"C:\Windows\Fonts\segoeui.ttf", r"C:\Windows\Fonts\arial.ttf"])
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def _wrap(text: str, font, max_width: float) -> list[str]:
+    """Bricht Text an Wortgrenzen so um, dass jede Zeile in max_width passt."""
+    lines: list[str] = []
+    current = ""
+    for word in text.split():
+        trial = f"{current} {word}".strip()
+        if current and font.getlength(trial) > max_width:
+            lines.append(current)
+            current = word
+        else:
+            current = trial
+    if current:
+        lines.append(current)
+    return lines
+
+
+def _draw_centered_block(draw, lines, font, cx: float, top_y: float,
+                         fill, gap: int) -> float:
+    """Zeichnet zentrierte Textzeilen ab top_y; liefert das untere y zurueck."""
+    ascent, descent = font.getmetrics()
+    y = top_y
+    for line in lines:
+        w = draw.textlength(line, font=font)
+        draw.text((cx - w / 2, y), line, font=font, fill=fill)
+        y += ascent + descent + gap
+    return y
+
+
+def card_image(width: int, height: int, kind: str, title: str, subtitle: str,
+               *, hover: bool = False) -> Image.Image:
+    """Rendert eine komplette Startkachel (dunkles Lila-Panel mit Leucht-Rand,
+    hellem Icon, weissem Titel, gedaempftem Untertitel) als ein RGBA-Bild."""
+    ss = _SS
+    w, h = width * ss, height * ss
+    radius = round(0.11 * height) * ss
+
+    top = _PANEL_TOP_HOVER if hover else _PANEL_TOP
+    bottom = _PANEL_BOTTOM_HOVER if hover else _PANEL_BOTTOM
+    img = gradient_image(w, h, radius, top, bottom)
+    draw = ImageDraw.Draw(img)
+
+    # Dezenter Leucht-Rand.
+    border = _BORDER_HOVER if hover else _BORDER
+    draw.rounded_rectangle([ss, ss, w - 1 - ss, h - 1 - ss],
+                           radius=radius, outline=border, width=max(2, ss))
+
+    # Icon zentriert im oberen Drittel.
+    icon_px = round(0.30 * height) * ss
+    icon = draw_icon(kind, icon_px)
+    img.alpha_composite(icon, (round(w / 2 - icon_px / 2), round(0.10 * h)))
+
+    # Titel + Untertitel (echte Schrift), zentriert.
+    cx = w / 2
+    max_text = w - 24 * ss
+    title_font = _load_font(round(0.12 * height) * ss, bold=True)
+    sub_font = _load_font(round(0.072 * height) * ss, bold=False)
+
+    y = _draw_centered_block(draw, _wrap(title, title_font, max_text),
+                             title_font, cx, round(0.46 * h), _TITLE_COLOR, 2 * ss)
+    _draw_centered_block(draw, _wrap(subtitle, sub_font, max_text),
+                         sub_font, cx, y + 2 * ss, _SUBTITLE_COLOR, 1 * ss)
+    return img
+
+
+def ctk_card(width: int, height: int, kind: str, title: str, subtitle: str,
+             *, hover: bool = False) -> ctk.CTkImage:
+    img = card_image(width, height, kind, title, subtitle, hover=hover)
     return ctk.CTkImage(light_image=img, dark_image=img, size=(width, height))
 
 

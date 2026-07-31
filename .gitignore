@@ -8,3 +8,7 @@ dist/
 *.zip
 assets/icon_preview.png
 Screenshot*.png
+
+# Design-Inspirationsbilder (lokal)
+bild*.jpg
+bild*.jpeg
