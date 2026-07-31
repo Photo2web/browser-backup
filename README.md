@@ -33,21 +33,42 @@ auf dem Zielrechner einmal abgefragt).
 
 ## Funktionen
 
-- **Sichern:** beliebige installierte Browser/Profile per Checkliste
-  auswaehlen — einzeln oder alle auf einmal. Jedes Profil landet in einer
-  eigenen ZIP-Datei (`umzug_<browser>_<profil>_<datum_zeit>.zip`).
+- **Modus-zuerst-Navigation (v1.3):** Der Startbildschirm zeigt drei grosse
+  Karten-Buttons — **Sichern**, **Wiederherstellen**, **Neuinstallation**. Nach
+  der Wahl sieht man nur die Funktionen des jeweiligen Modus; ein „‹ Zurueck"-
+  Button fuehrt zurueck zum Start. Sichern und Wiederherstellen haben je zwei
+  Sub-Reiter `[Browser | Persoenliche Daten]`.
+- **Sichern:** Browser-Profile per Checkliste (einzeln oder alle) und/oder die
+  persoenlichen Ordner. Man waehlt **ein** gemeinsames Ziel; das Tool legt pro
+  Sicherungslauf automatisch einen Ordner mit Zeitstempel an, darin je Modul
+  einen Unterordner:
+
+  ```
+  <Ziel>/Umzug_2026-07-29_1130/
+    ├── Browser/            umzug_<browser>_<profil>_<datum_zeit>.zip
+    └── PersoenlicheDaten/  ZIP oder 1:1-Kopie je Ordner
+  ```
 - **Wiederherstellen:** mehrere Backup-ZIPs auf einmal auswaehlen, werden
   automatisch anhand des Manifests dem passenden installierten Browser/
-  Profil zugeordnet. Ziel-Profil pro Zeile per Dropdown anpassbar.
+  Profil zugeordnet. Ziel-Profil pro Zeile per Dropdown anpassbar. Ist der
+  Quell-Browser nicht installiert, ist die Zeile gesperrt (kein Leerlauf).
 - **Neuinstallation (v1.1):** listet alle installierten Programme (via winget)
   und erzeugt aus der Auswahl eine lesbare Installationsanweisung, ein
   selbst-elevierendes winget-PowerShell-Skript und ein UniGetUI-Bundle, um die
   Programme auf einem neuen Windows-Rechner wieder einzurichten.
-- **Persönliche Daten (v1.2):** sichert die persönlichen Windows-Ordner
+- **Persoenliche Daten (v1.2):** sichert die persoenlichen Windows-Ordner
   (Dokumente, Bilder, Musik, Videos, Desktop, Downloads) wahlweise als ZIP oder
-  1:1-Kopie und stellt sie wieder her. Mit Speicherplatz-Prüfung (Medium +
-  Zielrechner) und Fortschrittsbalken. Bekannt-Ordner werden über die
-  Windows-API aufgelöst (OneDrive/NextCloud-Umleitung wird berücksichtigt).
+  1:1-Kopie und stellt sie wieder her. Bekannt-Ordner werden ueber die
+  Windows-API aufgeloest (OneDrive/NextCloud-Umleitung wird beruecksichtigt).
+- **Speicherplatz-Pruefung (cluster-genau, v1.3.1):** vor dem Start wird
+  geprueft, ob das Ziel gross genug ist — inklusive **Cluster-Verschnitt**
+  (jede Datei belegt mindestens einen ganzen Cluster; USB-/exFAT-Platten haben
+  oft 128 KB+ grosse Cluster, was bei vielen kleinen Dateien viel Platz kostet).
+  Damit meldet das Tool zu wenig Platz *vorher*, statt die Zielplatte mitten in
+  der Sicherung volllaufen zu lassen. Der ZIP-Modus braucht dabei deutlich
+  weniger Platz als eine 1:1-Kopie.
+- **Fortschrittsbalken** mit Prozentzahl und Farbverlauf von Rot (0 %) nach
+  Gruen (100 %) — in allen Sicher-/Wiederherstell-Vorgaengen.
 - Cache/temporaere Daten werden beim Sichern standardmaessig ausgeschlossen
   (abschaltbar) — siehe `core/blacklist.py` fuer die genaue Liste.
 - Vor Sicherung/Wiederherstellung wird geprueft, ob der betroffene Browser
@@ -79,20 +100,31 @@ Voraussetzung: Python 3.11+, Windows 10/11.
 
 ## Bedienung
 
+Beim Start erscheint der **Startbildschirm** mit drei Karten-Buttons. Nach der
+Wahl eines Modus fuehrt oben links **„‹ Zurueck"** wieder dorthin zurueck. In
+**Sichern** und **Wiederherstellen** wechselt man ueber die Sub-Reiter oben
+zwischen **Browser** und **Persoenliche Daten**.
+
 ### Sichern
 
-1. Oben bei „Zu sichernde Profile" die gewuenschten Browser/Profile
-   anhaken (oder „Alle auswaehlen").
-2. Zielordner fuer die ZIP-Dateien waehlen.
-3. „Cache/temporaere Daten ausschliessen" ist standardmaessig an
-   (deutlich kleinere Backups) — bei Bedarf abschalten.
-4. „Sichern" klicken. Laeuft einer der betroffenen Browser noch, fragt
-   das Tool nach (Beenden / Trotzdem fortfahren / Abbrechen).
+1. Auf dem Startbildschirm **„Sichern"** waehlen.
+2. **Einen gemeinsamen Zielordner** waehlen (oben) — dort landet pro Lauf ein
+   Ordner `Umzug_<Datum_Zeit>/` mit den Unterordnern `Browser/` und
+   `PersoenlicheDaten/`.
+3. Sub-Reiter **Browser**: gewuenschte Profile anhaken (oder „Alle auswaehlen");
+   „Cache/temporaere Daten ausschliessen" ist standardmaessig an (kleinere
+   Backups). Sub-Reiter **Persoenliche Daten**: Ordner anhaken und Format
+   waehlen (ZIP oder 1:1-Kopie).
+4. „Sichern" klicken. Reicht der Platz am Ziel (inkl. Cluster-Verschnitt) nicht,
+   warnt das Tool *vorher*. Laeuft ein betroffener Browser noch, fragt es nach
+   (Beenden / Trotzdem fortfahren / Abbrechen).
 5. Am Ende erscheint eine Zusammenfassung; bei Chromium-Browsern zusaetzlich
    der Passwort-Hinweis von oben.
 
 ### Wiederherstellen
 
+0. Auf dem Startbildschirm **„Wiederherstellen"** waehlen, dann Sub-Reiter
+   **Browser** bzw. **Persoenliche Daten**.
 1. „Backup-ZIPs auswaehlen..." — es koennen mehrere ZIPs auf einmal
    gewaehlt werden.
 2. Jede Zeile zeigt den erkannten Ziel-Browser, das vorbelegte Ziel-Profil
@@ -114,7 +146,7 @@ unten).
 
 ### Neuinstallation (Programme auf einem neuen PC)
 
-1. Tab „Neuinstallation" oeffnen. Es gibt zwei Auswahl-Bereiche:
+1. Auf dem Startbildschirm **„Neuinstallation"** waehlen. Es gibt zwei Auswahl-Bereiche:
    - **Grundausstattung** — eine feste, kuratierte Liste haeufiger Programme
      (Browser, Acrobat Reader, 7-Zip, VLC, …), sofort waehlbar. Pflege in
      `core/essential_apps.py`.
@@ -197,13 +229,20 @@ core/                 Kernlogik, GUI-unabhaengig, einzeln testbar
   installed_apps.py     Installierte Programme via winget (Neuinstallation)
   installplan.py        Erzeugt Anleitung + PS-Skript + UniGetUI-Bundle; startet Skript
   essential_apps.py     Kuratierte Grundausstattung (feste winget-Liste)
-  personal_data.py      Persoenliche Ordner sichern/wiederherstellen (v1.2)
+  personal_data.py      Persoenliche Ordner sichern/wiederherstellen (v1.2);
+                        Speicherplatz + Cluster-Verschnitt (cluster_size/disk_reservation, v1.3.1)
+  runfolder.py          Lauf-Ordner Umzug_<datum>/ mit Modul-Unterordnern (v1.3)
 gui/                  customtkinter-Oberflaeche
-  app.py                Hauptfenster
-  backup_tab.py         Sichern-Tab
-  restore_tab.py        Wiederherstellen-Tab
-  reinstall_tab.py      Neuinstallation-Tab
-  personal_tab.py       Tab "Persoenliche Daten"
+  app.py                Hauptfenster + Screen-Router (Home <-> Modi)
+  home_screen.py        Startbildschirm mit drei Karten-Buttons (v1.3)
+  home_icons.py         Zur Laufzeit gezeichnete Icons (Pillow) (v1.3)
+  backup_mode.py        Sichern-Modus: gemeinsames Ziel + Sub-Reiter (v1.3)
+  restore_mode.py       Wiederherstellen-Modus: Sub-Reiter (v1.3)
+  backup_tab.py         Browser sichern (Sub-Reiter)
+  restore_tab.py        Browser wiederherstellen (Sub-Reiter)
+  reinstall_tab.py      Neuinstallation
+  personal_tab.py       Persoenliche Daten: Backup-/Restore-Frame (v1.3-Split)
+  progress.py           ColorProgressBar (Prozent + rot->gruen) (v1.3)
   worker.py             Thread + Queue fuer Fortschritt
   dialogs.py            Wiederverwendete Dialoge
 tests/                Unit-Tests (python -m unittest discover -s tests)
