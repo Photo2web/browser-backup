@@ -1,4 +1,4 @@
-"""Sichern-Modus: gemeinsames Ziel + Lauf-Ordner + Sub-Tabs (Browser / Persoenliche Daten)."""
+"""Sichern-Modus: gemeinsames Ziel + Lauf-Ordner + Sub-Tabs (Browser / Persönliche Daten)."""
 
 from pathlib import Path
 from tkinter import filedialog
@@ -13,7 +13,7 @@ from .personal_tab import PersonalBackupFrame
 
 
 class BackupMode(ctk.CTkFrame):
-    """Container fuer den Sichern-Modus. Stellt die dir_provider-Schnittstelle bereit."""
+    """Container für den Sichern-Modus. Stellt die dir_provider-Schnittstelle bereit."""
 
     def __init__(self, master, on_back):
         super().__init__(master, fg_color="transparent")
@@ -25,7 +25,7 @@ class BackupMode(ctk.CTkFrame):
     def _build(self):
         top = ctk.CTkFrame(self, fg_color="transparent")
         top.pack(fill="x")
-        ctk.CTkButton(top, text="‹ Zurueck", width=90, command=self._back).pack(side="left")
+        ctk.CTkButton(top, text="‹ Zurück", width=90, command=self._back).pack(side="left")
         ctk.CTkLabel(top, text="Sichern", font=ctk.CTkFont(size=16, weight="bold")).pack(
             side="left", padx=8)
 
@@ -34,13 +34,13 @@ class BackupMode(ctk.CTkFrame):
         tf.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(tf, text="Zielordner:").grid(row=0, column=0, padx=(0, 8))
         self.target_entry = ctk.CTkEntry(
-            tf, placeholder_text="Gemeinsamer Zielordner fuer diese Sicherung")
+            tf, placeholder_text="Gemeinsamer Zielordner für diese Sicherung")
         self.target_entry.grid(row=0, column=1, sticky="ew")
         ctk.CTkButton(tf, text="Durchsuchen ...", width=110, command=self._choose).grid(
             row=0, column=2, padx=(8, 0))
 
         self.subtabs = ctk.CTkSegmentedButton(
-            self, values=["Browser", "Persoenliche Daten"], command=self._switch)
+            self, values=["Browser", "Persönliche Daten"], command=self._switch)
         self.subtabs.set("Browser")
         self.subtabs.pack(fill="x", pady=(0, 8))
 
@@ -64,7 +64,7 @@ class BackupMode(ctk.CTkFrame):
     def resolve_target(self) -> Path | None:
         text = self.target_entry.get().strip()
         if not text:
-            show_error(self, "Kein Zielordner", "Bitte einen gemeinsamen Zielordner waehlen.")
+            show_error(self, "Kein Zielordner", "Bitte einen gemeinsamen Zielordner wählen.")
             return None
         base = Path(text)
         try:
@@ -86,9 +86,9 @@ class BackupMode(ctk.CTkFrame):
         self._run = None
 
     def on_show(self) -> None:
-        # Beim Betreten des Modus die Groessen des sichtbaren Personal-Frames laden,
+        # Beim Betreten des Modus die Größen des sichtbaren Personal-Frames laden,
         # falls dort aktiv. (Browser-Sub-Tab braucht kein on_show.)
-        if self.subtabs.get() == "Persoenliche Daten":
+        if self.subtabs.get() == "Persönliche Daten":
             self.personal_frame.on_show()
 
     # -- intern --------------------------------------------------------

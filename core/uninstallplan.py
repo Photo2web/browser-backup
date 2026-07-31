@@ -7,11 +7,11 @@ eigenen Konsolenfenster startet. Das Skript
 
 * eleviert sich selbst als Administrator (UAC), sobald ein systemweites
   (``machine``) Programm dabei ist - dasselbe Muster wie das Install-Skript;
-* entfernt still, wo moeglich (``QuietUninstallString`` bzw. MSI ``/qn``), sonst
+* entfernt still, wo möglich (``QuietUninstallString`` bzw. MSI ``/qn``), sonst
   erscheint der Hersteller-Uninstaller zum Durchklicken;
-* zaehlt Erfolg/Fehler je Programm und zeigt am Ende eine Zusammenfassung.
+* zählt Erfolg/Fehler je Programm und zeigt am Ende eine Zusammenfassung.
 
-Ausgefuehrt werden die ``UninstallString``-Werte aus der Registry - genau die
+Ausgeführt werden die ``UninstallString``-Werte aus der Registry - genau die
 Befehle, die Windows selbst zum Deinstallieren nutzt.
 """
 
@@ -39,7 +39,7 @@ def _ps_quote(value: str) -> str:
 
 
 def command_for(program) -> tuple[str, bool]:
-    """Liefert (Befehlszeile, still?) fuer ein Programm.
+    """Liefert (Befehlszeile, still?) für ein Programm.
 
     Bevorzugt den stillen Weg: QuietUninstallString; sonst MSI auf ``/qn``
     umschreiben; sonst den normalen UninstallString (interaktiv)."""
@@ -57,7 +57,7 @@ _PS_TEMPLATE = r"""<#
     Deinstallieren.ps1
     Erzeugt von Umzugstool __VERSION__ am __CREATED__.
 
-    Entfernt die ausgewaehlten Programme. Still wo moeglich, sonst erscheint der
+    Entfernt die ausgewählten Programme. Still wo möglich, sonst erscheint der
     Hersteller-Uninstaller. Systemweite Programme erfordern Administrator-Rechte.
 #>
 
@@ -87,7 +87,7 @@ if ($needsAdmin -and -not $istAdmin) {
 }
 
 # ------------------------------------------------------------------
-# Ausgewaehlte Programme entfernen
+# Ausgewählte Programme entfernen
 # ------------------------------------------------------------------
 $apps = @(
 __APPS_ARRAY__
@@ -124,16 +124,16 @@ Write-Host ''
 Write-Host '====================================================' -ForegroundColor White
 Write-Host ("Fertig. Entfernt: {0}  Fehlgeschlagen: {1}" -f $erfolg, $fehler) -ForegroundColor White
 if ($fehler -gt 0) {
-    Write-Host 'Fehlgeschlagen (bitte manuell pruefen):' -ForegroundColor Yellow
+    Write-Host 'Fehlgeschlagen (bitte manuell prüfen):' -ForegroundColor Yellow
     foreach ($f in $fehlerListe) { Write-Host ("  - {0}" -f $f) -ForegroundColor Yellow }
 }
 Write-Host ''
-Read-Host 'Zum Beenden Enter druecken'
+Read-Host 'Zum Beenden Enter drücken'
 """
 
 
 def _apps_array(programs) -> str:
-    """PowerShell-Hashtable-Eintraege fuer das $apps-Array."""
+    """PowerShell-Hashtable-Einträge für das $apps-Array."""
     entries = []
     for program in programs:
         cmd, silent = command_for(program)
@@ -149,7 +149,7 @@ def _apps_array(programs) -> str:
 
 def build_uninstall_script(programs, *, tool_version: str = TOOL_VERSION,
                            created: datetime | None = None) -> str:
-    """Erzeugt den Inhalt von ``Deinstallieren.ps1`` fuer die Programmauswahl."""
+    """Erzeugt den Inhalt von ``Deinstallieren.ps1`` für die Programmauswahl."""
     created = created if created is not None else datetime.now()
     needs_admin = any(getattr(p, "scope", "") == "machine" for p in programs)
     return (
@@ -164,7 +164,7 @@ def build_uninstall_script(programs, *, tool_version: str = TOOL_VERSION,
 def write_and_launch_uninstall(programs, work_dir, *,
                                tool_version: str = TOOL_VERSION) -> Path:
     """Schreibt ``Deinstallieren.ps1`` nach ``work_dir`` und startet es in einem
-    eigenen Konsolenfenster. Gibt den Skriptpfad zurueck.
+    eigenen Konsolenfenster. Gibt den Skriptpfad zurück.
 
     Raises:
         OSError: wenn das Skript nicht geschrieben werden kann.

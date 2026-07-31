@@ -6,15 +6,15 @@ Chromium-Familie (Chrome, Edge, Brave, Vivaldi, Opera, Ecosia, ...):
     <User-Data-Ordner>\\Local State (JSON) -> profile.info_cache
     Chrome/Edge/Brave/Vivaldi/Ecosia liegen unter %LOCALAPPDATA%\\<Hersteller>\\<Produkt>\\User Data
     Opera liegt (anders als die meisten!) direkt unter %APPDATA%\\Opera Software\\<Produkt>,
-    ohne "User Data"-Zwischenordner — der Ordner selbst uebernimmt diese Rolle.
+    ohne "User Data"-Zwischenordner — der Ordner selbst übernimmt diese Rolle.
 
 Chrome/Edge/Firefox/Opera/Ecosia wurden gegen reale Installationen auf
-Mikes System geprueft (siehe PHASE0_NOTIZEN.md sowie Verifikation am
+Mikes System geprüft (siehe PHASE0_NOTIZEN.md sowie Verifikation am
 2026-07-26). Brave/Vivaldi nutzen denselben, generischen Chromium-
 Mechanismus (detect_chromium()), sind aber NICHT auf einer echten
 Installation verifiziert — die Ordnernamen sind gut dokumentierte
 Chromium-Standardpfade, sollten aber bei Bedarf per
-`python -m core.browsers` gegengeprueft werden.
+`python -m core.browsers` gegengeprüft werden.
 """
 
 import configparser
@@ -29,8 +29,8 @@ class Profile:
     """Ein einzelnes Browserprofil."""
 
     id: str            # Firefox: relativer Pfad aus profiles.ini; Chromium: Ordnername ("Default", "Profile 1", ...)
-    name: str          # Klarname fuer die GUI (Firefox: Name=; Chromium: info_cache.<id>.name)
-    path: Path         # aufgeloester, absoluter Pfad zum Profilordner
+    name: str          # Klarname für die GUI (Firefox: Name=; Chromium: info_cache.<id>.name)
+    path: Path         # aufgelöster, absoluter Pfad zum Profilordner
     is_default: bool = False
 
 
@@ -38,14 +38,14 @@ class Profile:
 class Browser:
     """Ein erkannter Browser mit seinen Profilen."""
 
-    key: str            # "firefox" | "chrome" | "edge" — interner Schluessel, u.a. fuer blacklist.py und processes.py
-    display_name: str   # Anzeigename fuer die GUI ("Firefox", "Chrome", "Edge")
+    key: str            # "firefox" | "chrome" | "edge" — interner Schlüssel, u.a. für blacklist.py und processes.py
+    display_name: str   # Anzeigename für die GUI ("Firefox", "Chrome", "Edge")
     profiles: list[Profile] = field(default_factory=list)
     local_state_path: Path | None = None  # nur Chromium: gemeinsame "Local State"-Datei im User-Data-Root
 
 
 def detect_firefox() -> Browser | None:
-    """Erkennt Firefox ueber profiles.ini. Gibt None zurueck, wenn Firefox
+    """Erkennt Firefox über profiles.ini. Gibt None zurück, wenn Firefox
     nicht installiert ist oder keine Profile gefunden wurden."""
     appdata = os.environ.get("APPDATA")
     if not appdata:
@@ -97,10 +97,10 @@ def detect_firefox() -> Browser | None:
 
 
 def detect_chromium(key: str, display_name: str, user_data_path: Path) -> Browser | None:
-    """Erkennt einen Chromium-basierten Browser ueber
-    <User Data>/Local State -> profile.info_cache. Gibt None zurueck,
+    """Erkennt einen Chromium-basierten Browser über
+    <User Data>/Local State -> profile.info_cache. Gibt None zurück,
     wenn der Browser nicht installiert ist oder Local State nicht
-    lesbar/vorhanden ist. Funktioniert fuer jeden Chromium-Fork, der diese
+    lesbar/vorhanden ist. Funktioniert für jeden Chromium-Fork, der diese
     Konvention nutzt (Chrome, Edge, Brave, Vivaldi, Opera, Ecosia, ...) —
     user_data_path zeigt bei Opera direkt auf den Produktordner (kein
     "User Data"-Zwischenordner), bei den anderen auf "<Produkt>\\User Data"."""
@@ -126,13 +126,13 @@ def detect_chromium(key: str, display_name: str, user_data_path: Path) -> Browse
             id=folder_name,
             # "or folder_name" statt nur .get(..., folder_name): manche
             # Chromium-Forks (z.B. Opera) tragen einen LEEREN String als
-            # "name" ein, .get() greift dann nicht auf den Default-Wert zurueck.
+            # "name" ein, .get() greift dann nicht auf den Default-Wert zurück.
             name=info.get("name") or folder_name,
             path=user_data_path / folder_name,
             is_default=(folder_name == "Default"),
         )
         for folder_name, info in info_cache.items()
-        # UNSICHER/beobachtet (Opera): info_cache kann verwaiste Eintraege
+        # UNSICHER/beobachtet (Opera): info_cache kann verwaiste Einträge
         # enthalten, deren Profilordner gar nicht (mehr) existiert. Diese
         # werden nicht angezeigt, um Phantom-Profile in der GUI zu vermeiden.
         if (user_data_path / folder_name).is_dir()
@@ -147,7 +147,7 @@ def detect_chromium(key: str, display_name: str, user_data_path: Path) -> Browse
 
 
 # Chromium-Familie unter %LOCALAPPDATA%\<Hersteller>\<Produkt>\User Data.
-# Neue Chromium-basierte Browser aufnehmen = hier eine Zeile ergaenzen,
+# Neue Chromium-basierte Browser aufnehmen = hier eine Zeile ergänzen,
 # detect_chromium() ist bereits generisch.
 _LOCALAPPDATA_CHROMIUM_BROWSERS = (
     ("chrome", "Chrome", ("Google", "Chrome")),
@@ -166,7 +166,7 @@ _APPDATA_CHROMIUM_BROWSERS = (
 
 
 def detect_browsers() -> list[Browser]:
-    """Erkennt alle unterstuetzten, installierten Browser. Nicht gefundene
+    """Erkennt alle unterstützten, installierten Browser. Nicht gefundene
     Browser werden ausgelassen (GUI zeigt schlicht nur die gefundenen an)."""
     found: list[Browser] = []
 
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     browsers = detect_browsers()
 
     if not browsers:
-        print("Keine unterstuetzten Browser gefunden.")
+        print("Keine unterstützten Browser gefunden.")
     else:
         for browser in browsers:
             print(f"\n{browser.display_name} ({browser.key})")

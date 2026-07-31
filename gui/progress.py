@@ -1,7 +1,7 @@
-"""Wiederverwendbarer Fortschrittsbalken mit Prozentzahl und rot->gruen-Farbe.
+"""Wiederverwendbarer Fortschrittsbalken mit Prozentzahl und rot->grün-Farbe.
 
-Die Fuellfarbe wandert fortschrittsabhaengig von Rot (0 %) ueber Gelb (~50 %)
-nach Gruen (100 %). Ein zentriertes Label zeigt die Prozentzahl.
+Die Füllfarbe wandert fortschrittsabhängig von Rot (0 %) über Gelb (~50 %)
+nach Grün (100 %). Ein zentriertes Label zeigt die Prozentzahl.
 """
 
 import colorsys
@@ -10,7 +10,7 @@ import customtkinter as ctk
 
 
 def color_for_fraction(frac: float) -> str:
-    """#rrggbb fuer den Fortschritt frac (0..1): Hue 0deg(rot)->120deg(gruen)."""
+    """#rrggbb für den Fortschritt frac (0..1): Hue 0deg(rot)->120deg(grün)."""
     frac = max(0.0, min(1.0, frac))
     hue = (120.0 * frac) / 360.0
     r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 0.85)
@@ -18,17 +18,17 @@ def color_for_fraction(frac: float) -> str:
 
 
 class ColorProgressBar(ctk.CTkFrame):
-    """CTkProgressBar mit ueberlagerter Prozentzahl und wandernder Farbe."""
+    """CTkProgressBar mit überlagerter Prozentzahl und wandernder Farbe."""
 
     def __init__(self, master, **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
-        # Feste, ausreichende Hoehe: der Balken bestimmt die Rahmenhoehe, und
+        # Feste, ausreichende Höhe: der Balken bestimmt die Rahmenhöhe, und
         # das mittig platzierte Prozentlabel (11px, fett) braucht Platz, sonst
         # wird die Zahl oben/unten abgeschnitten.
         self._bar = ctk.CTkProgressBar(self, height=24)
         self._bar.set(0)
         self._bar.pack(fill="x", expand=True)
-        # Prozentlabel mittig ueber dem Balken.
+        # Prozentlabel mittig über dem Balken.
         self._label = ctk.CTkLabel(self, text="0 %", font=ctk.CTkFont(size=11, weight="bold"))
         self._label.place(relx=0.5, rely=0.5, anchor="center")
         self.reset()

@@ -1,13 +1,13 @@
-"""Kuratierte "Grundausstattung" - haeufig gebrauchte Programme fuer einen
+"""Kuratierte "Grundausstattung" - häufig gebrauchte Programme für einen
 frisch aufgesetzten Windows-Rechner.
 
 Diese Liste ist bewusst fest im Code gehalten und leicht zu pflegen: einfach
-Zeilen in ESSENTIAL_APPS ergaenzen/entfernen. Jede winget-Id wurde gegen die
-echte winget-Quelle geprueft (Stand 2026-07-28) - beim Ergaenzen bitte die Id
+Zeilen in ESSENTIAL_APPS ergänzen/entfernen. Jede winget-Id wurde gegen die
+echte winget-Quelle geprüft (Stand 2026-07-28) - beim Ergänzen bitte die Id
 vorher mit ``winget show --id <Id> -e`` verifizieren (Prinzip: keine erfundenen
 Ids).
 
-Die Eintraege werden ueber ``to_installed_app()`` in dasselbe ``InstalledApp``
+Die Einträge werden über ``to_installed_app()`` in dasselbe ``InstalledApp``
 umgewandelt, das auch die winget-Erkennung liefert - dadurch laufen sie ohne
 Sonderfall durch dieselbe Erzeugen-/Installieren-Pipeline (siehe installplan.py).
 """
@@ -45,12 +45,10 @@ ESSENTIAL_APPS: tuple[EssentialApp, ...] = (
     EssentialApp("7-Zip", "7zip.7zip", "Archive"),
     EssentialApp("VLC media player", "VideoLAN.VLC", "Medien"),
     EssentialApp("Mozilla Thunderbird", "Mozilla.Thunderbird", "Kommunikation"),
-    EssentialApp("Zoom Workplace", "Zoom.Zoom", "Kommunikation"),
+    EssentialApp("AnyDesk", "AnyDesk.AnyDesk", "Fernwartung"),
     EssentialApp("Notepad++", "Notepad++.Notepad++", "Werkzeuge"),
     EssentialApp("Microsoft PowerToys", "Microsoft.PowerToys", "Werkzeuge"),
-    EssentialApp("Visual Studio Code", "Microsoft.VisualStudioCode", "Entwicklung"),
-    EssentialApp("Git", "Git.Git", "Entwicklung"),
-    EssentialApp("PowerShell 7", "Microsoft.PowerShell", "Entwicklung"),
+    EssentialApp("PowerShell 7", "Microsoft.PowerShell", "Werkzeuge"),
 )
 
 

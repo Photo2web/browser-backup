@@ -1,12 +1,12 @@
 """
-personal_tab.py — Persoenliche Daten: Sichern-/Restore-Frames.
+personal_tab.py — Persönliche Daten: Sichern-/Restore-Frames.
 
-Sichert/stellt die persoenlichen Windows-Ordner (Dokumente, Bilder, Musik,
+Sichert/stellt die persönlichen Windows-Ordner (Dokumente, Bilder, Musik,
 Videos, Desktop, Downloads) wieder her — wahlweise als ZIP oder 1:1-Kopie,
-mit Speicherplatz-Pruefung und Fortschrittsbalken. `PersonalBackupFrame`
-(Sichern) und `PersonalRestoreFrame` (Wiederherstellen) sind eigenstaendige
-Frames fuer je einen Modus-Container; sie teilen sich die Worker-Poll-/Log-/
-Balken-Logik ueber die Basisklasse `_RunFrame`. Lange Laeufe laufen im
+mit Speicherplatz-Prüfung und Fortschrittsbalken. `PersonalBackupFrame`
+(Sichern) und `PersonalRestoreFrame` (Wiederherstellen) sind eigenständige
+Frames für je einen Modus-Container; sie teilen sich die Worker-Poll-/Log-/
+Balken-Logik über die Basisklasse `_RunFrame`. Lange Läufe laufen im
 Worker-Thread (Poll per after()), damit die GUI nicht einfriert.
 """
 
@@ -32,8 +32,8 @@ from core.personal_data import (
     restore_personal_folder,
 )
 
-# Kleine Restmarge auf die (bereits konservative) Cluster-Schaetzung, damit
-# auch Dateisystem-Metadaten/Verzeichniseintraege noch Luft haben.
+# Kleine Restmarge auf die (bereits konservative) Cluster-Schätzung, damit
+# auch Dateisystem-Metadaten/Verzeichniseinträge noch Luft haben.
 _SPACE_SAFETY = 1.02
 
 from .dialogs import ask_conflict_mode, show_error, show_info
@@ -45,7 +45,7 @@ _MODE_HINT = ("Hinweis: Fotos/Musik/Videos sind schon komprimiert - eine "
 
 
 class _RunFrame(ctk.CTkFrame):
-    """Basis fuer die beiden Personal-Frames: Worker-Poll, Log, Balken."""
+    """Basis für die beiden Personal-Frames: Worker-Poll, Log, Balken."""
 
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
@@ -95,7 +95,7 @@ class _RunFrame(ctk.CTkFrame):
 
 
 class PersonalBackupFrame(_RunFrame):
-    """Modus "Sichern": Persoenliche Ordner in den Umzugsordner sichern."""
+    """Modus "Sichern": Persönliche Ordner in den Umzugsordner sichern."""
 
     def __init__(self, master, dir_provider):
         super().__init__(master)
@@ -107,7 +107,7 @@ class PersonalBackupFrame(_RunFrame):
         self.backup_items: list[tuple[PersonalFolder, ctk.BooleanVar, ctk.CTkLabel]] = []
         self.mode_var = ctk.StringVar(value="zip")
         self._sizes: dict[str, int] = {}
-        # Dateianzahl je Ordner - fuer die Cluster-genaue Speicherplatz-Pruefung.
+        # Dateianzahl je Ordner - für die Cluster-genaue Speicherplatz-Prüfung.
         self._counts: dict[str, int] = {}
         self._sizes_loaded = False
         self._build()
@@ -118,7 +118,7 @@ class PersonalBackupFrame(_RunFrame):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x")
         ctk.CTkLabel(header, text="Zu sichernde Ordner:").pack(side="left", padx=(0, 8))
-        ctk.CTkButton(header, text="Alle auswaehlen", width=120,
+        ctk.CTkButton(header, text="Alle auswählen", width=120,
                       command=self._select_all_backup).pack(side="left", padx=4)
 
         self.backup_list = ctk.CTkScrollableFrame(self, height=170)
@@ -144,7 +144,7 @@ class PersonalBackupFrame(_RunFrame):
         ctk.CTkLabel(self, text=_MODE_HINT, text_color="gray70",
                      wraplength=820, justify="left").pack(fill="x", pady=(0, 4))
 
-        self.totals_label = ctk.CTkLabel(self, text="Groessen werden geladen ...",
+        self.totals_label = ctk.CTkLabel(self, text="Größen werden geladen ...",
                                          text_color="gray70")
         self.totals_label.pack(fill="x", pady=(2, 4))
         self.backup_button = ctk.CTkButton(self, text="Sichern",
@@ -154,18 +154,18 @@ class PersonalBackupFrame(_RunFrame):
     # -- on_show ---------------------------------------------------------
 
     def on_show(self):
-        """Beim Anzeigen des Frames die Ordnergroessen einmal im Hintergrund laden."""
+        """Beim Anzeigen des Frames die Ordnergrößen einmal im Hintergrund laden."""
         if not self._sizes_loaded and not self.worker.is_running():
             self._load_sizes()
 
-    # -- Groessen laden -------------------------------------------------
+    # -- Größen laden -------------------------------------------------
 
     def _load_sizes(self):
-        self.backup_button.configure(state="disabled", text="Groessen werden ermittelt ...")
+        self.backup_button.configure(state="disabled", text="Größen werden ermittelt ...")
         existing = [f for f, _v, _l in self.backup_items if f.exists]
 
         def run(_progress):
-            # Groesse UND Dateianzahl je Ordner (Anzahl -> Cluster-Verschnitt).
+            # Größe UND Dateianzahl je Ordner (Anzahl -> Cluster-Verschnitt).
             return {f.key: folder_size(f.path) for f in existing}
 
         self.worker.start(run)
@@ -180,17 +180,17 @@ class PersonalBackupFrame(_RunFrame):
                     return
                 if item[0] == "error":
                     self.backup_button.configure(state="normal", text="Sichern")
-                    self._log(f"Groessen konnten nicht geladen werden: {item[1]}")
-                    show_error(self, "Groessen nicht ermittelbar",
-                              f"Die Ordnergroessen konnten nicht bestimmt werden:\n{item[1]}\n\n"
-                              "Tab schliessen und erneut oeffnen, um es noch einmal zu versuchen.")
+                    self._log(f"Größen konnten nicht geladen werden: {item[1]}")
+                    show_error(self, "Größen nicht ermittelbar",
+                              f"Die Ordnergrößen konnten nicht bestimmt werden:\n{item[1]}\n\n"
+                              "Tab schließen und erneut öffnen, um es noch einmal zu versuchen.")
                     return
         except queue.Empty:
             pass
         self.after(120, self._poll_sizes)
 
     def _on_sizes_loaded(self, results: dict):
-        # results: {key: FolderSize}. Groesse + Dateianzahl getrennt merken.
+        # results: {key: FolderSize}. Größe + Dateianzahl getrennt merken.
         self._sizes = {key: fs.total_bytes for key, fs in results.items()}
         self._counts = {key: fs.file_count for key, fs in results.items()}
         self._sizes_loaded = True
@@ -220,7 +220,7 @@ class PersonalBackupFrame(_RunFrame):
             return
         selected = self._gather_backup_selection()
         if not selected:
-            show_error(self, "Keine Auswahl", "Bitte mindestens einen vorhandenen Ordner auswaehlen.")
+            show_error(self, "Keine Auswahl", "Bitte mindestens einen vorhandenen Ordner auswählen.")
             return
 
         dest_base = self.dir_provider.resolve_target()
@@ -228,7 +228,7 @@ class PersonalBackupFrame(_RunFrame):
             return
         if not self._sizes_loaded:
             show_error(self, "Bitte kurz warten",
-                       "Die Ordnergroessen werden noch ermittelt. Bitte einen Moment warten "
+                       "Die Ordnergrößen werden noch ermittelt. Bitte einen Moment warten "
                        "und erneut auf 'Sichern' klicken.")
             return
 
@@ -239,9 +239,9 @@ class PersonalBackupFrame(_RunFrame):
             show_error(self, "Zielordner", f"Zielordner nicht nutzbar:\n{exc}")
             return
 
-        # Cluster-genaue Pruefung: im Kopie-Modus belegt jede Datei mind. einen
+        # Cluster-genaue Prüfung: im Kopie-Modus belegt jede Datei mind. einen
         # ganzen Cluster (Slack), im ZIP-Modus entsteht nur eine Datei pro
-        # Ordner (vernachlaessigbarer Slack). Plus kleine Restmarge.
+        # Ordner (vernachlässigbarer Slack). Plus kleine Restmarge.
         cluster = cluster_size(dest_base)
         if mode == "copy":
             needed = sum(disk_reservation(self._sizes.get(f.key, 0),
@@ -254,14 +254,14 @@ class PersonalBackupFrame(_RunFrame):
 
         if needed > free:
             show_error(self, "Zu wenig Speicherplatz",
-                       f"Benoetigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
+                       f"Benötigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
                        f"Frei am Ziel: {_format_bytes(free)}\n\n"
-                       "Bitte Ziel mit mehr Platz waehlen oder weniger Ordner auswaehlen.\n"
+                       "Bitte Ziel mit mehr Platz wählen oder weniger Ordner auswählen.\n"
                        "Tipp: Der ZIP-Modus braucht bei vielen kleinen Dateien deutlich "
                        "weniger Platz als eine 1:1-Kopie.")
             return
         dest = self.dir_provider.module_dir("PersoenlicheDaten")
-        self.backup_button.configure(state="disabled", text="Sicherung laeuft ...")
+        self.backup_button.configure(state="disabled", text="Sicherung läuft ...")
         self.progress_bar.reset()
         self._log(f"Sichere {len(selected)} Ordner ({mode}) ...")
         total_items = len(selected)
@@ -295,12 +295,12 @@ class PersonalBackupFrame(_RunFrame):
 
 
 class PersonalRestoreFrame(_RunFrame):
-    """Modus "Wiederherstellen": Persoenliche Ordner aus einem Backup zurueckspielen."""
+    """Modus "Wiederherstellen": Persönliche Ordner aus einem Backup zurückspielen."""
 
     def __init__(self, master):
         super().__init__(master)
         self.folders: list[PersonalFolder] = detect_personal_folders()
-        # Restore: Liste (manifest, source_path, target-Entry, ausgewaehlt-Var)
+        # Restore: Liste (manifest, source_path, target-Entry, ausgewählt-Var)
         self.restore_rows: list[tuple[dict, Path, ctk.CTkEntry, ctk.BooleanVar]] = []
         self._build()
 
@@ -309,44 +309,44 @@ class PersonalRestoreFrame(_RunFrame):
     def _build(self):
         btns = ctk.CTkFrame(self, fg_color="transparent")
         btns.pack(fill="x")
-        # Neuer Weg: kompletten Umzugsordner waehlen -> Backups automatisch finden.
-        ctk.CTkButton(btns, text="Umzugsordner waehlen ...",
+        # Neuer Weg: kompletten Umzugsordner wählen -> Backups automatisch finden.
+        ctk.CTkButton(btns, text="Umzugsordner wählen ...",
                       command=self._choose_run_folder).pack(side="left", padx=4)
-        ctk.CTkButton(btns, text="Backup-ZIP(s) waehlen ...", command=self._choose_restore_zips).pack(side="left", padx=4)
-        ctk.CTkButton(btns, text="Kopie-Ordner waehlen ...", command=self._choose_restore_copy).pack(side="left", padx=4)
-        ctk.CTkButton(btns, text="Alle aus-/abwaehlen", width=140,
+        ctk.CTkButton(btns, text="Backup-ZIP(s) wählen ...", command=self._choose_restore_zips).pack(side="left", padx=4)
+        ctk.CTkButton(btns, text="Kopie-Ordner wählen ...", command=self._choose_restore_copy).pack(side="left", padx=4)
+        ctk.CTkButton(btns, text="Alle aus-/abwählen", width=140,
                       command=self._toggle_all_restore).pack(side="right", padx=4)
 
         self.restore_list = ctk.CTkScrollableFrame(self, height=200)
         self.restore_list.pack(fill="both", expand=True, pady=(6, 6))
         self.restore_hint = ctk.CTkLabel(self.restore_list,
-                                         text="Noch kein Backup gewaehlt.", text_color="gray70")
+                                         text="Noch kein Backup gewählt.", text_color="gray70")
         self.restore_hint.pack(anchor="w", padx=8, pady=8)
 
         self.restore_button = ctk.CTkButton(self, text="Wiederherstellen",
                                             command=self._on_restore_clicked)
         self.restore_button.pack(pady=(0, 4))
 
-    # -- Backup-Quellen waehlen ----------------------------------------
+    # -- Backup-Quellen wählen ----------------------------------------
 
     def _choose_restore_zips(self):
-        paths = filedialog.askopenfilenames(parent=self, title="Backup-ZIP(s) waehlen",
+        paths = filedialog.askopenfilenames(parent=self, title="Backup-ZIP(s) wählen",
                                             filetypes=[("ZIP", "*.zip")])
         self._load_restore_sources([Path(p) for p in paths])
 
     def _choose_restore_copy(self):
-        chosen = filedialog.askdirectory(parent=self, title="Kopie-Ordner waehlen")
+        chosen = filedialog.askdirectory(parent=self, title="Kopie-Ordner wählen")
         if chosen:
             self._load_restore_sources([Path(chosen)])
 
     def _choose_run_folder(self):
-        """Umzugsordner (oder PersoenlicheDaten/) waehlen und rekursiv nach
-        Datensicherungen durchsuchen. Der Scan laeuft im Worker-Thread, damit
+        """Umzugsordner (oder PersoenlicheDaten/) wählen und rekursiv nach
+        Datensicherungen durchsuchen. Der Scan läuft im Worker-Thread, damit
         die GUI bei vielen ZIPs nicht einfriert."""
         if self.worker.is_running():
-            show_info(self, "Bitte warten", "Es laeuft gerade ein anderer Vorgang.")
+            show_info(self, "Bitte warten", "Es läuft gerade ein anderer Vorgang.")
             return
-        chosen = filedialog.askdirectory(parent=self, title="Umzugsordner waehlen")
+        chosen = filedialog.askdirectory(parent=self, title="Umzugsordner wählen")
         if not chosen:
             return
         root = Path(chosen)
@@ -377,12 +377,12 @@ class PersonalRestoreFrame(_RunFrame):
         if not results:
             self.restore_hint = ctk.CTkLabel(
                 self.restore_list,
-                text="Keine persoenlichen Datensicherungen in diesem Ordner gefunden.",
+                text="Keine persönlichen Datensicherungen in diesem Ordner gefunden.",
                 text_color="gray70")
             self.restore_hint.pack(anchor="w", padx=8, pady=8)
             self._log("Keine Datensicherungen gefunden.")
             show_info(self, "Nichts gefunden",
-                      "Keine persoenlichen Datensicherungen in diesem Ordner gefunden.")
+                      "Keine persönlichen Datensicherungen in diesem Ordner gefunden.")
             return
         for path, manifest in results:
             self._add_restore_row(manifest, path)
@@ -419,11 +419,11 @@ class PersonalRestoreFrame(_RunFrame):
             try:
                 manifest = read_backup_manifest(source)
             except (OSError, KeyError, ValueError, zipfile.BadZipFile) as exc:
-                self._log(f"Kein gueltiges Backup: {source.name} ({exc})")
+                self._log(f"Kein gültiges Backup: {source.name} ({exc})")
                 continue
             self._add_restore_row(manifest, source)
         if not self.restore_rows:
-            ctk.CTkLabel(self.restore_list, text="Keine gueltigen Backups gefunden.",
+            ctk.CTkLabel(self.restore_list, text="Keine gültigen Backups gefunden.",
                          text_color="gray70").pack(anchor="w", padx=8, pady=8)
 
     def _toggle_all_restore(self):
@@ -439,15 +439,15 @@ class PersonalRestoreFrame(_RunFrame):
 
     def _on_restore_clicked(self):
         if self.worker.is_running():
-            show_info(self, "Bitte warten", "Es laeuft gerade ein anderer Vorgang.")
+            show_info(self, "Bitte warten", "Es läuft gerade ein anderer Vorgang.")
             return
         if not self.restore_rows:
-            show_error(self, "Kein Backup", "Bitte zuerst ein Backup waehlen.")
+            show_error(self, "Kein Backup", "Bitte zuerst ein Backup wählen.")
             return
 
         selected_rows = [(m, s, e) for m, s, e, v in self.restore_rows if v.get()]
         if not selected_rows:
-            show_error(self, "Nichts ausgewaehlt",
+            show_error(self, "Nichts ausgewählt",
                        "Bitte mindestens eine Datensicherung ankreuzen.")
             return
 
@@ -457,7 +457,7 @@ class PersonalRestoreFrame(_RunFrame):
         for manifest, source, entry in selected_rows:
             target = entry.get().strip()
             if not target:
-                show_error(self, "Kein Ziel", f"Bitte Zielordner fuer {source.name} angeben.")
+                show_error(self, "Kein Ziel", f"Bitte Zielordner für {source.name} angeben.")
                 return
             target_path = Path(target)
             jobs.append((source, target_path))
@@ -471,7 +471,7 @@ class PersonalRestoreFrame(_RunFrame):
                                            cluster_per_drive[drive])
             needed_per_drive[drive] = needed_per_drive.get(drive, 0) + reservation
 
-        # Speicherplatz am Ziel pruefen (Spec §5/§6), inkl. Cluster-Verschnitt + Restmarge.
+        # Speicherplatz am Ziel prüfen (Spec §5/§6), inkl. Cluster-Verschnitt + Restmarge.
         for drive, needed in needed_per_drive.items():
             needed = int(needed * _SPACE_SAFETY)
             try:
@@ -481,16 +481,16 @@ class PersonalRestoreFrame(_RunFrame):
             if needed > free:
                 show_error(self, "Zu wenig Speicherplatz",
                            f"Ziel-Laufwerk {drive}\n"
-                           f"Benoetigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
+                           f"Benötigt (inkl. Cluster-Verschnitt): {_format_bytes(needed)}\n"
                            f"Frei: {_format_bytes(free)}\n\n"
-                           "Bitte Platz schaffen oder weniger Backups auswaehlen.")
+                           "Bitte Platz schaffen oder weniger Backups auswählen.")
                 return
 
         conflict = ask_conflict_mode(self)
         if conflict == "abbrechen":
             return
 
-        self.restore_button.configure(state="disabled", text="Laeuft ...")
+        self.restore_button.configure(state="disabled", text="Läuft ...")
         self.progress_bar.reset()
         self._log(f"Stelle {len(jobs)} Ordner wieder her (Konflikt: {conflict}) ...")
         total_items = len(jobs)
@@ -513,7 +513,7 @@ class PersonalRestoreFrame(_RunFrame):
         overwritten = sum(r.overwritten for r in results)
         skipped = sum(r.skipped_existing for r in results)
         errors = sum(len(r.errors) for r in results)
-        self._log(f"Fertig. {restored} neu, {overwritten} ueberschrieben, {skipped} uebersprungen.")
+        self._log(f"Fertig. {restored} neu, {overwritten} überschrieben, {skipped} übersprungen.")
         lines = [f"Ordner: {len(results)}", f"Neu geschrieben: {restored}",
                  f"Ueberschrieben: {overwritten}", f"Uebersprungen: {skipped}"]
         if errors:
@@ -522,13 +522,13 @@ class PersonalRestoreFrame(_RunFrame):
         if skipped or errors:
             report_path = self._write_skip_report(results)
             if report_path is not None:
-                lines.append(f"\nListe uebersprungener Dateien:\n{report_path}")
+                lines.append(f"\nListe übersprungener Dateien:\n{report_path}")
         show_info(self, "Wiederherstellung abgeschlossen", "\n".join(lines))
 
     def _write_skip_report(self, results) -> Path | None:
-        """Schreibt eine TXT mit den uebersprungenen Dateien (und Fehlern) des
+        """Schreibt eine TXT mit den übersprungenen Dateien (und Fehlern) des
         Laufs auf den Desktop (ersatzweise ins Benutzerprofil). Gibt den Pfad
-        zurueck oder None, wenn nichts geschrieben werden konnte."""
+        zurück oder None, wenn nichts geschrieben werden konnte."""
         ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         out_lines = [f"Umzugstool - Wiederherstellung {ts}",
                      "Uebersprungene (bereits vorhandene) Dateien und Fehler.", ""]
@@ -549,10 +549,10 @@ class PersonalRestoreFrame(_RunFrame):
         out_path = out_dir / f"Umzugstool_Wiederherstellung_{ts}.txt"
         try:
             out_path.write_text("\n".join(out_lines), encoding="utf-8")
-            self._log(f"Liste uebersprungener Dateien: {out_path}")
+            self._log(f"Liste übersprungener Dateien: {out_path}")
             return out_path
         except OSError as exc:
-            self._log(f"Konnte Liste uebersprungener Dateien nicht schreiben: {exc}")
+            self._log(f"Konnte Liste übersprungener Dateien nicht schreiben: {exc}")
             return None
 
     def _on_run_error(self, exc: Exception):

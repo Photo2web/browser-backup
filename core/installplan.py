@@ -1,11 +1,11 @@
 """Erzeugt aus einer Auswahl installierter Programme die drei Ausgabedateien
-fuer die Neuinstallation auf einem anderen Windows-Rechner:
+für die Neuinstallation auf einem anderen Windows-Rechner:
 
-1. ``Installationsanweisung.md`` - lesbare Liste (winget-faehig + manuell).
+1. ``Installationsanweisung.md`` - lesbare Liste (winget-fähig + manuell).
 2. ``Install-Apps.ps1``          - selbst-elevierendes winget-Installationsskript.
 3. ``Apps.ubundle``              - UniGetUI-Bundle (JSON, Schema export_version 3).
 
-Reine String-/Datei-Erzeugung, GUI-unabhaengig und einzeln testbar.
+Reine String-/Datei-Erzeugung, GUI-unabhängig und einzeln testbar.
 
 Das UniGetUI-Bundle-Schema wurde am UniGetUI-Quellcode verifiziert
 (SerializableBundle/SerializablePackage): Top-Level ``export_version`` (=3),
@@ -37,7 +37,7 @@ _UNIGETUI_MANAGER_NAME = "Winget"
 # UniGetUI zeigt nicht zuordenbare Programme als "Local PC"-Quelle an.
 _UNIGETUI_LOCAL_SOURCE = "Local PC"
 _UNIGETUI_INCOMPAT_INFO = (
-    "Diese Programme konnten keinem winget-Paket zugeordnet werden und muessen "
+    "Diese Programme konnten keinem winget-Paket zugeordnet werden und müssen "
     "auf dem Zielrechner manuell installiert werden."
 )
 
@@ -58,7 +58,7 @@ class InstallPlanResult:
 # ---------------------------------------------------------------------------
 
 def _split(apps: list[InstalledApp]) -> tuple[list[InstalledApp], list[InstalledApp]]:
-    """Teilt in (winget-faehig, manuell), jeweils alphabetisch nach Name."""
+    """Teilt in (winget-fähig, manuell), jeweils alphabetisch nach Name."""
     installable = sorted(
         (a for a in apps if a.winget_installable), key=lambda a: a.name.lower()
     )
@@ -93,7 +93,7 @@ def build_instruction_markdown(
         "",
         f"Quelle: {host}",
         "",
-        "> Hinweis: Die winget-Installation benoetigt eine Internetverbindung.",
+        "> Hinweis: Die winget-Installation benötigt eine Internetverbindung.",
         "",
         f"## Automatisch installierbar (winget) - {len(installable)}",
         "",
@@ -108,7 +108,7 @@ def build_instruction_markdown(
         "",
         f"## Manuell zu installieren - {len(manual)}",
         "",
-        "Fuer diese Programme wurde kein winget-Paket gefunden - bitte manuell "
+        "Für diese Programme wurde kein winget-Paket gefunden - bitte manuell "
         "von der jeweiligen Herstellerseite installieren.",
         "",
     ]
@@ -127,23 +127,23 @@ def build_instruction_markdown(
 # 2. PowerShell-Installationsskript
 # ---------------------------------------------------------------------------
 
-# Statisches Geruest; __PLATZHALTER__ werden per str.replace ersetzt, damit
+# Statisches Gerüst; __PLATZHALTER__ werden per str.replace ersetzt, damit
 # PowerShell-Zeichen wie $ und {} nicht mit Python-Formatierung kollidieren.
 _PS_TEMPLATE = r"""<#
     Install-Apps.ps1
     Erzeugt von Umzugstool __VERSION__ am __CREATED__.
 
-    Installiert die ausgewaehlten Programme via winget auf einem neuen
+    Installiert die ausgewählten Programme via winget auf einem neuen
     Windows-Rechner.
 
     WICHTIG:
-      * Benoetigt eine Internetverbindung.
+      * Benötigt eine Internetverbindung.
       * Das Skript startet sich selbst mit Administrator-Rechten neu (UAC-Abfrage).
-      * Reihenfolge: PowerShell-7-Pruefung -> winget sicherstellen -> installieren.
+      * Reihenfolge: PowerShell-7-Prüfung -> winget sicherstellen -> installieren.
 #>
 
 $ErrorActionPreference = 'Stop'
-# Native Programme (winget) nicht ueber ErrorActionPreference werfen lassen -
+# Native Programme (winget) nicht über ErrorActionPreference werfen lassen -
 # wir werten deren Exit-Code selbst aus.
 $PSNativeCommandUseErrorActionPreference = $false
 
@@ -167,10 +167,10 @@ if (-not $istAdmin) {
     }
     exit
 }
-Write-Host 'Laeuft mit Administrator-Rechten.' -ForegroundColor Green
+Write-Host 'Läuft mit Administrator-Rechten.' -ForegroundColor Green
 
 # ------------------------------------------------------------------
-# 2. PowerShell-7-Pruefung (Installation ggf. nach dem winget-Setup)
+# 2. PowerShell-7-Prüfung (Installation ggf. nach dem winget-Setup)
 # ------------------------------------------------------------------
 $ps7Vorhanden = [bool](Get-Command pwsh -ErrorAction SilentlyContinue)
 if ($ps7Vorhanden) {
@@ -180,7 +180,7 @@ if ($ps7Vorhanden) {
 }
 
 # ------------------------------------------------------------------
-# 3. winget sicherstellen (faengt den "erst Microsoft Store"-Fall ab)
+# 3. winget sicherstellen (fängt den "erst Microsoft Store"-Fall ab)
 # ------------------------------------------------------------------
 function Ensure-WinGet {
     if (Get-Command winget -ErrorAction SilentlyContinue) { return $true }
@@ -193,7 +193,7 @@ function Ensure-WinGet {
     }
     if (Get-Command winget -ErrorAction SilentlyContinue) { return $true }
 
-    Write-Host 'Bootstrap ueber das offizielle Microsoft.WinGet.Client-Modul...' -ForegroundColor Yellow
+    Write-Host 'Bootstrap über das offizielle Microsoft.WinGet.Client-Modul...' -ForegroundColor Yellow
     try {
         Install-PackageProvider -Name NuGet -Force -ErrorAction Stop | Out-Null
         Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -ErrorAction Stop | Out-Null
@@ -211,11 +211,11 @@ function Ensure-WinGet {
 }
 
 if (-not (Ensure-WinGet)) {
-    Write-Host 'Ohne winget koennen keine Programme installiert werden. Abbruch.' -ForegroundColor Red
-    Read-Host 'Zum Beenden Enter druecken'
+    Write-Host 'Ohne winget können keine Programme installiert werden. Abbruch.' -ForegroundColor Red
+    Read-Host 'Zum Beenden Enter drücken'
     exit 1
 }
-Write-Host 'winget ist verfuegbar.' -ForegroundColor Green
+Write-Host 'winget ist verfügbar.' -ForegroundColor Green
 
 # PowerShell 7 nachinstallieren, falls es fehlte
 if (-not $ps7Vorhanden) {
@@ -229,7 +229,7 @@ if (-not $ps7Vorhanden) {
 }
 
 # ------------------------------------------------------------------
-# 4. Ausgewaehlte Programme installieren
+# 4. Ausgewählte Programme installieren
 # ------------------------------------------------------------------
 $apps = @(
 __APPS_ARRAY__
@@ -263,16 +263,16 @@ Write-Host ''
 Write-Host '====================================================' -ForegroundColor White
 Write-Host ("Fertig. Erfolgreich: {0}  Fehlgeschlagen: {1}" -f $erfolg, $fehler) -ForegroundColor White
 if ($fehler -gt 0) {
-    Write-Host 'Fehlgeschlagen (bitte manuell pruefen):' -ForegroundColor Yellow
+    Write-Host 'Fehlgeschlagen (bitte manuell prüfen):' -ForegroundColor Yellow
     foreach ($f in $fehlerListe) { Write-Host ("  - {0}" -f $f) -ForegroundColor Yellow }
 }
 Write-Host ''
-Read-Host 'Zum Beenden Enter druecken'
+Read-Host 'Zum Beenden Enter drücken'
 """
 
 
 def _apps_array(installable: list[InstalledApp]) -> str:
-    """Erzeugt die PowerShell-Hashtable-Eintraege fuer das $apps-Array."""
+    """Erzeugt die PowerShell-Hashtable-Einträge für das $apps-Array."""
     if not installable:
         return ""
     entries = []
@@ -386,10 +386,10 @@ def write_install_plan(
 def launch_install_script(script_path: Path | str) -> None:
     """Startet das erzeugte ``Install-Apps.ps1`` in einem eigenen PowerShell-Fenster.
 
-    Das Skript regelt Admin-Elevation (UAC), PowerShell-7-Pruefung und den
-    winget-Bootstrap selbst. Es gibt bewusst keine Rueckmeldung ins Tool zurueck
-    (der elevierte Prozess laeuft getrennt) - der Fortschritt erscheint im
-    PowerShell-Fenster. Startet auf DEM Rechner, auf dem BrowserBackup laeuft.
+    Das Skript regelt Admin-Elevation (UAC), PowerShell-7-Prüfung und den
+    winget-Bootstrap selbst. Es gibt bewusst keine Rückmeldung ins Tool zurück
+    (der elevierte Prozess läuft getrennt) - der Fortschritt erscheint im
+    PowerShell-Fenster. Startet auf DEM Rechner, auf dem BrowserBackup läuft.
 
     Raises:
         FileNotFoundError: wenn das Skript nicht existiert.
@@ -400,7 +400,7 @@ def launch_install_script(script_path: Path | str) -> None:
 
     creationflags = 0
     if sys.platform == "win32":
-        # Eigenes Konsolenfenster, auch wenn BrowserBackup als --windowed-Exe laeuft.
+        # Eigenes Konsolenfenster, auch wenn BrowserBackup als --windowed-Exe läuft.
         creationflags = subprocess.CREATE_NEW_CONSOLE
 
     subprocess.Popen(

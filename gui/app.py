@@ -4,7 +4,7 @@ app.py — Hauptfenster von Umzugstool.
 Router zwischen Startbildschirm (HomeScreen) und den drei Modi
 (Sichern / Wiederherstellen / Neuinstallation, PROJEKT.md §2). Die
 eigentliche Backup-/Restore-/Neuinstallations-Logik liegt komplett in
-core/ und den jeweiligen Modus-Klassen — diese Datei kuemmert sich nur
+core/ und den jeweiligen Modus-Klassen — diese Datei kümmert sich nur
 um Fenster + Screen-Umschaltung.
 """
 
@@ -30,16 +30,21 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Einheitliches Lila-Glas-Farbschema (Dark-Mode + kompakte Skalierung).
+        # Einheitliches Lila-Glas-Farbschema (Dark-Mode + Akzentfarben).
         apply_purple_theme()
         self.configure(fg_color=WINDOW_BG)
 
-        self.title(f"Umzugstool v{TOOL_VERSION} - fuer Windows 10+")
+        # Widget-/Schriftgröße an den Bildschirm anpassen: auf großen
+        # 4K-Monitoren (ohne Windows-Skalierung) ist die Schrift sonst winzig,
+        # auf kleinen Laptops darf es kompakt bleiben.
+        self._apply_adaptive_scaling()
+
+        self.title(f"Umzugstool v{TOOL_VERSION} - für Windows 10+")
         self._set_window_icon()
         self.geometry("880x680")
         self.minsize(700, 480)
 
-        # Fenster nie hoeher als der Bildschirm oeffnen, sonst sind die unteren
+        # Fenster nie höher als der Bildschirm öffnen, sonst sind die unteren
         # Buttons abgeschnitten (v.a. auf Laptops mit hoher DPI-Skalierung).
         self.update_idletasks()
         try:
@@ -50,7 +55,7 @@ class App(ctk.CTk):
         if usable_height < 680:
             self.geometry(f"880x{max(usable_height, 480)}")
 
-        # Menue-Leiste (Zurueck-Buttons stecken in den Modi selbst).
+        # Menü-Leiste (Zurück-Buttons stecken in den Modi selbst).
         topbar = ctk.CTkFrame(self, fg_color="transparent")
         topbar.pack(padx=16, pady=(16, 8), fill="x")
         self.menu_button = ctk.CTkButton(
@@ -64,7 +69,7 @@ class App(ctk.CTk):
                                   border_width=1, border_color=PANEL_BORDER)
         self.panel.pack(fill="both", expand=True, padx=16, pady=(0, 16))
 
-        # Dezente Branding-Fusszeile ganz unten im Panel (immer sichtbar).
+        # Dezente Branding-Fußzeile ganz unten im Panel (immer sichtbar).
         self.branding = ctk.CTkLabel(
             self.panel,
             text=f"© 2026 photo2web · Umzugstool v{TOOL_VERSION}",
@@ -86,10 +91,35 @@ class App(ctk.CTk):
                          self.reinstall_screen, self.uninstall_screen]
         self.show_home()
 
-    # Screens sitzen im Glas-Panel: etwas Innenabstand laesst die runde Kante
-    # sichtbar, die Branding-Fusszeile (side="bottom") bleibt darunter frei.
+    # Screens sitzen im Glas-Panel: etwas Innenabstand lässt die runde Kante
+    # sichtbar, die Branding-Fußzeile (side="bottom") bleibt darunter frei.
     _SCREEN_PACK = {"side": "top", "fill": "both", "expand": True,
                     "padx": 8, "pady": (8, 4)}
+
+    def _apply_adaptive_scaling(self) -> None:
+        """Setzt die customtkinter-Widget-Skalierung passend zum Bildschirm.
+
+        Logik:
+        - Skaliert Windows bereits per DPI (window_scaling >= ~1.4), bleiben wir
+          fast neutral, sonst würde alles doppelt vergrößert.
+        - Sonst richten wir uns nach der (physischen) Bildschirmhöhe: 4K/große
+          Displays -> vergrößern, Standard -> neutral, Laptop -> kompakt.
+        """
+        try:
+            window_scaling = ctk.ScalingTracker.get_window_scaling(self)
+        except Exception:
+            window_scaling = 1.0
+        screen_h = self.winfo_screenheight()
+
+        if window_scaling >= 1.4:
+            widget_scaling = 0.9          # Windows vergrößert schon selbst
+        elif screen_h >= 2000:
+            widget_scaling = 1.15         # 4K nativ -> deutlich lesbarer
+        elif screen_h >= 1400:
+            widget_scaling = 1.0          # QHD / große FHD
+        else:
+            widget_scaling = 0.85         # Laptop-FHD/HD -> kompakt
+        ctk.set_widget_scaling(widget_scaling)
 
     def show_home(self) -> None:
         for s in self._screens:
@@ -114,7 +144,7 @@ class App(ctk.CTk):
     def _set_window_icon(self) -> None:
         """Setzt das Fenster-/Taskleisten-Icon. Funktioniert aus dem Quellcode
         und aus der --onefile-Exe (dort liegt die Datei unter sys._MEIPASS).
-        Icon ist optional - schlaegt es fehl, startet die App trotzdem."""
+        Icon ist optional - schlägt es fehl, startet die App trotzdem."""
         try:
             base = getattr(sys, "_MEIPASS", None) or Path(__file__).resolve().parent.parent
             ico = Path(base) / "assets" / "icon.ico"
@@ -124,14 +154,14 @@ class App(ctk.CTk):
             pass
 
     def _open_menu(self) -> None:
-        """Oeffnet das Menue oben rechts (Copyright / Hilfe) als Dropdown."""
+        """Oeffnet das Menü oben rechts (Copyright / Hilfe) als Dropdown."""
         menu = tk.Menu(self, tearoff=0)
-        # An das Lila-Glas-Theme angelehnt einfaerben.
+        # An das Lila-Glas-Theme angelehnt einfärben.
         menu.configure(
             bg=PANEL_BG, fg="#dcdcdc", bd=0, activebackground=ACCENT,
             activeforeground="white", relief="flat",
         )
-        menu.add_command(label="Copyright / Ueber", command=self._show_about)
+        menu.add_command(label="Copyright / Über", command=self._show_about)
         menu.add_command(label="Hilfe", command=self._show_help)
         x = self.menu_button.winfo_rootx()
         y = self.menu_button.winfo_rooty() + self.menu_button.winfo_height()
@@ -143,11 +173,11 @@ class App(ctk.CTk):
     def _show_about(self) -> None:
         show_info(
             self,
-            "Ueber Umzugstool",
+            "Über Umzugstool",
             f"Umzugstool v{TOOL_VERSION}\n\n"
             "(c) 2026 photo2web (p2w)\n\n"
             "Sichern, Wiederherstellen und Neuinstallieren von Browser-Profilen, "
-            "persoenlichen Daten (Dokumente, Bilder, Desktop, ...) und Programmen "
+            "persönlichen Daten (Dokumente, Bilder, Desktop, ...) und Programmen "
             "unter Windows. Portabel, ohne Adminrechte zum Start.",
         )
 
@@ -155,15 +185,15 @@ class App(ctk.CTk):
         show_info(
             self,
             "Hilfe",
-            "Auf dem Startbildschirm einen Modus waehlen:\n\n"
-            "Sichern: Browser-Profile und persoenliche Daten in einem gemeinsamen "
+            "Auf dem Startbildschirm einen Modus wählen:\n\n"
+            "Sichern: Browser-Profile und persönliche Daten in einem gemeinsamen "
             "Zielordner sichern (Unterordner Browser/ und PersoenlicheDaten/ im "
             "selben Lauf-Ordner).\n\n"
-            "Wiederherstellen: Gesicherte Browser-ZIPs und/oder persoenliche Daten "
-            "auswaehlen und zurueckspielen (optional mit Sicherheits-Backup).\n\n"
+            "Wiederherstellen: Gesicherte Browser-ZIPs und/oder persönliche Daten "
+            "auswählen und zurückspielen (optional mit Sicherheits-Backup).\n\n"
             "Neuinstallation: Grundausstattung und/oder installierte Programme "
-            "auswaehlen, Installationsdateien erzeugen und optional direkt via "
-            "winget installieren (Internetverbindung noetig).\n\n"
+            "auswählen, Installationsdateien erzeugen und optional direkt via "
+            "winget installieren (Internetverbindung nötig).\n\n"
             "Mehr Details stehen in der README.md im Programmordner.",
         )
 

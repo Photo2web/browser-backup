@@ -1,15 +1,15 @@
 """
 restore_tab.py — "Wiederherstellen"-Tab der Umzugstool-GUI.
 
-Es koennen mehrere Backup-ZIPs auf einmal ausgewaehlt werden (z.B. wenn
+Es können mehrere Backup-ZIPs auf einmal ausgewählt werden (z.B. wenn
 jedes Profil einzeln gesichert wurde, siehe gui/backup_tab.py). Jede ZIP
 wird automatisch anhand ihres Manifests (Browser + Quell-Profilname) einem
-installierten Ziel-Browser/-Profil zugeordnet; ueber eine Checkliste kann
+installierten Ziel-Browser/-Profil zugeordnet; über eine Checkliste kann
 der Nutzer gezielt einzelne oder alle davon wiederherstellen.
 
-v1-Scope (bestaetigt in Phase 0): nur "vorhandenes Profil ueberschreiben".
+v1-Scope (bestätigt in Phase 0): nur "vorhandenes Profil überschreiben".
 Es gibt deshalb bewusst KEINE Radio-Auswahl "neu anlegen" — nur ein
-Hinweistext, dass das in einer spaeteren Version folgt.
+Hinweistext, dass das in einer späteren Version folgt.
 """
 
 import json
@@ -30,17 +30,17 @@ from .progress import ColorProgressBar
 from .worker import Worker
 
 CHROMIUM_PASSWORD_HINWEIS = (
-    "Hinweis: Chromium-Passwoerter/Cookies funktionieren nur auf demselben "
-    "Windows-Konto/PC. Fuer PC-uebergreifende Passwoerter: Chrome-Sync oder "
+    "Hinweis: Chromium-Passwörter/Cookies funktionieren nur auf demselben "
+    "Windows-Konto/PC. Für PC-übergreifende Passwörter: Chrome-Sync oder "
     "ein Passwortmanager (z. B. Vaultwarden)."
 )
 
 
 @dataclass
 class _Candidate:
-    """Eine ausgewaehlte ZIP-Datei + der dazu automatisch ermittelte
+    """Eine ausgewählte ZIP-Datei + der dazu automatisch ermittelte
     Ziel-Browser (falls installiert). Das Ziel-Profil kann der Nutzer per
-    Dropdown noch aendern (profile_menu ist None, wenn browser nicht
+    Dropdown noch ändern (profile_menu ist None, wenn browser nicht
     installiert ist — dann gibt es nichts zum Wiederherstellen)."""
 
     zip_path: Path
@@ -65,17 +65,17 @@ class RestoreTab(ctk.CTkFrame):
     def _build_ui(self):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x")
-        ctk.CTkButton(header, text="Backup-ZIPs auswaehlen ...", command=self._choose_zips).pack(
+        ctk.CTkButton(header, text="Backup-ZIPs auswählen ...", command=self._choose_zips).pack(
             side="left", padx=(0, 8)
         )
-        ctk.CTkButton(header, text="Alle auswaehlen", width=120, command=self._select_all).pack(
+        ctk.CTkButton(header, text="Alle auswählen", width=120, command=self._select_all).pack(
             side="left", padx=4
         )
-        ctk.CTkButton(header, text="Alle abwaehlen", width=120, command=self._select_none).pack(
+        ctk.CTkButton(header, text="Alle abwählen", width=120, command=self._select_none).pack(
             side="left", padx=4
         )
 
-        self.list_frame = ctk.CTkScrollableFrame(self, height=200, label_text="Ausgewaehlte Backups")
+        self.list_frame = ctk.CTkScrollableFrame(self, height=200, label_text="Ausgewählte Backups")
         self.list_frame.pack(fill="x", pady=(8, 12))
         self._refresh_placeholder()
 
@@ -85,8 +85,8 @@ class RestoreTab(ctk.CTkFrame):
         ctk.CTkLabel(
             options,
             text=(
-                "v1 unterstuetzt nur das Ueberschreiben eines vorhandenen Profils.\n"
-                '"Neues Profil anlegen" folgt in einer spaeteren Version.'
+                "v1 unterstützt nur das Ueberschreiben eines vorhandenen Profils.\n"
+                '"Neues Profil anlegen" folgt in einer späteren Version.'
             ),
             justify="left",
             text_color="gray60",
@@ -101,15 +101,15 @@ class RestoreTab(ctk.CTkFrame):
         ctk.CTkCheckBox(
             options,
             text=(
-                "Local State bei betroffenen Chromium-Profilen mit uebernehmen "
-                "(Passwoerter bleiben trotzdem nicht portabel)"
+                "Local State bei betroffenen Chromium-Profilen mit übernehmen "
+                "(Passwörter bleiben trotzdem nicht portabel)"
             ),
             variable=self.local_state_var,
         ).pack(anchor="w", padx=12, pady=(0, 8))
 
         self.start_button = ctk.CTkButton(self, text="Wiederherstellen", command=self._on_start_clicked)
         self.start_button.pack(pady=(0, 12))
-        # Ohne ausgewaehlte ZIPs gibt es kein installiertes Ziel -> Button gesperrt.
+        # Ohne ausgewählte ZIPs gibt es kein installiertes Ziel -> Button gesperrt.
         self._update_start_button_state()
 
         self.progress_bar = ColorProgressBar(self)
@@ -120,19 +120,19 @@ class RestoreTab(ctk.CTkFrame):
         self.log_box.pack(fill="both", expand=True)
 
         if not self.browsers:
-            self._log("Kein unterstuetzter Browser (Firefox/Chrome/Edge/...) gefunden.")
+            self._log("Kein unterstützter Browser (Firefox/Chrome/Edge/...) gefunden.")
 
     def _refresh_placeholder(self):
         if not self.candidates:
             ctk.CTkLabel(
-                self.list_frame, text="Noch keine ZIP-Dateien ausgewaehlt.", text_color="gray60"
+                self.list_frame, text="Noch keine ZIP-Dateien ausgewählt.", text_color="gray60"
             ).pack(anchor="w", padx=8, pady=8)
 
     def _update_start_button_state(self):
         """Aktiviert den Wiederherstellen-Button nur, wenn mindestens ein
-        ausgewaehltes Backup einem installierten Ziel-Browser zugeordnet ist.
-        Ohne installiertes Ziel waere ein Klick wirkungslos (nichts wird
-        zurueckgespielt) -> Button bleibt gesperrt statt erst beim Klick zu
+        ausgewähltes Backup einem installierten Ziel-Browser zugeordnet ist.
+        Ohne installiertes Ziel wäre ein Klick wirkungslos (nichts wird
+        zurückgespielt) -> Button bleibt gesperrt statt erst beim Klick zu
         meckern."""
         has_target = any(c.browser is not None for c in self.candidates)
         self.start_button.configure(state="normal" if has_target else "disabled")
@@ -147,7 +147,7 @@ class RestoreTab(ctk.CTkFrame):
 
     def _choose_zips(self):
         chosen = filedialog.askopenfilenames(
-            parent=self, filetypes=[("Umzugstool ZIP", "*.zip")], title="Backup-ZIPs auswaehlen"
+            parent=self, filetypes=[("Umzugstool ZIP", "*.zip")], title="Backup-ZIPs auswählen"
         )
         if not chosen:
             return
@@ -161,8 +161,8 @@ class RestoreTab(ctk.CTkFrame):
             try:
                 manifest = read_manifest(zip_path)
             except (KeyError, OSError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
-                # z.B. beschaedigte/keine echte ZIP-Datei oder fehlendes/
-                # kaputtes Manifest — einzelne Datei ueberspringen statt
+                # z.B. beschädigte/keine echte ZIP-Datei oder fehlendes/
+                # kaputtes Manifest — einzelne Datei überspringen statt
                 # die ganze Auswahl abzubrechen.
                 self._log(f"! Manifest von {zip_path.name} konnte nicht gelesen werden: {exc}")
                 continue
@@ -220,8 +220,8 @@ class RestoreTab(ctk.CTkFrame):
     # -- Ablauf -----------------------------------------------------
 
     def _resolve_selected(self) -> list[tuple[Browser, Profile, Path, dict]]:
-        """Liefert (Browser, Profile, zip_path, manifest) fuer alle
-        angehakten Kandidaten, mit dem aktuell im Dropdown gewaehlten
+        """Liefert (Browser, Profile, zip_path, manifest) für alle
+        angehakten Kandidaten, mit dem aktuell im Dropdown gewählten
         Ziel-Profil."""
         resolved = []
         for candidate in self.candidates:
@@ -239,7 +239,7 @@ class RestoreTab(ctk.CTkFrame):
 
         selected = self._resolve_selected()
         if not selected:
-            show_error(self, "Keine Auswahl", "Bitte mindestens ein Backup mit installiertem Ziel-Browser auswaehlen.")
+            show_error(self, "Keine Auswahl", "Bitte mindestens ein Backup mit installiertem Ziel-Browser auswählen.")
             return
 
         distinct_browsers = list({b.key: b for b, _, _, _ in selected}.values())
@@ -259,16 +259,16 @@ class RestoreTab(ctk.CTkFrame):
         overview = "\n".join(f'  - {b.display_name}: "{p.name}"' for b, p, _, _ in selected)
         confirmed = ask_yes_no(
             self,
-            "Wiederherstellung bestaetigen",
-            f"Folgende {len(selected)} Profil(e) werden ueberschrieben:\n\n{overview}\n\n"
+            "Wiederherstellung bestätigen",
+            f"Folgende {len(selected)} Profil(e) werden überschrieben:\n\n{overview}\n\n"
             f"Sicherheits-Backup: {'ja' if make_safety_backup else 'nein'}\n"
-            f"Local State uebernehmen (wo zutreffend): {'ja' if restore_local_state else 'nein'}\n\n"
+            f"Local State übernehmen (wo zutreffend): {'ja' if restore_local_state else 'nein'}\n\n"
             "Fortfahren?",
         )
         if not confirmed:
             return
 
-        self.start_button.configure(state="disabled", text="Wiederherstellung laeuft ...")
+        self.start_button.configure(state="disabled", text="Wiederherstellung läuft ...")
         self.progress_bar.reset()
         self.log_box.configure(state="normal")
         self.log_box.delete("1.0", "end")
@@ -342,14 +342,14 @@ class RestoreTab(ctk.CTkFrame):
             if result.safety_backup_path:
                 self._log(f"    Sicherheits-Backup: {result.safety_backup_path}")
             if result.local_state_restored:
-                self._log("    Local State wurde uebernommen.")
+                self._log("    Local State wurde übernommen.")
 
         summary_lines = [
             f"{len(results)} Profil(e) wiederhergestellt.",
             f"Dateien insgesamt: {total_restored}",
         ]
         if total_locked:
-            summary_lines.append(f"Gesperrte/uebersprungene Dateien insgesamt: {total_locked}")
+            summary_lines.append(f"Gesperrte/übersprungene Dateien insgesamt: {total_locked}")
         if any_chromium:
             summary_lines.append("")
             summary_lines.append(CHROMIUM_PASSWORD_HINWEIS)

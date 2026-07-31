@@ -1,8 +1,8 @@
 """
 restore.py — Wiederherstellung eines Profils aus einer Umzugstool-ZIP.
 
-v1-Scope (bestaetigt in Phase 0, siehe PHASE0_NOTIZEN.md): nur
-"vorhandenes Profil ueberschreiben" wird unterstuetzt. "Neues Profil
+v1-Scope (bestätigt in Phase 0, siehe PHASE0_NOTIZEN.md): nur
+"vorhandenes Profil überschreiben" wird unterstützt. "Neues Profil
 anlegen" ist auf v1.1 verschoben (Chromium info_cache-Erzeugung ohne
 Testreihe zu riskant).
 
@@ -34,9 +34,9 @@ class RestoreResult:
 
 
 def read_manifest(zip_path: Path) -> dict:
-    """Liest backup_manifest.json aus der ZIP — fuer die read-only
+    """Liest backup_manifest.json aus der ZIP — für die read-only
     Manifest-Anzeige in der GUI, BEVOR der Nutzer Ziel-Profil und Modus
-    waehlt."""
+    wählt."""
     with zipfile.ZipFile(zip_path, "r") as zf:
         with zf.open("backup_manifest.json") as f:
             return json.load(f)
@@ -51,18 +51,18 @@ def restore_profile(
     progress_callback: ProgressCallback | None = None,
 ) -> RestoreResult:
     """Stellt ein Profil aus zip_path in target_profile.path wieder her
-    (ueberschreibt vorhandene Dateien, entfernt aber keine Dateien, die
-    NUR im Ziel existieren, z.B. lokale Cache-Reste — das ist unschaedlich,
+    (überschreibt vorhandene Dateien, entfernt aber keine Dateien, die
+    NUR im Ziel existieren, z.B. lokale Cache-Reste — das ist unschädlich,
     da es sich dabei per Definition um regenerierbare Daten handelt).
 
     Parameter:
         make_safety_backup: sichert das aktuelle Ziel-Profil VOR dem
             Ueberschreiben als eigene ZIP (Cache wird hier NICHT
-            ausgeschlossen — vollstaendiges Rueckfall-Netz statt
+            ausgeschlossen — vollständiges Rückfall-Netz statt
             optimierter Sicherung).
         restore_local_state: nur bei Chromium relevant, Default aus
             PROJEKT.md §6.3 ist "Nein" (bestehende Local State bleibt
-            unangetastet, da Passwoerter ohnehin nicht portabel sind).
+            unangetastet, da Passwörter ohnehin nicht portabel sind).
     """
     zip_path = Path(zip_path)
     manifest = read_manifest(zip_path)
@@ -101,13 +101,13 @@ def restore_profile(
             rel = member[len("profile/"):]
             dest_path = target_profile.path / rel
             try:
-                # UNSICHER/erwarteter Fall: Zielordner/-datei koennte noch
+                # UNSICHER/erwarteter Fall: Zielordner/-datei könnte noch
                 # durch den Browser gesperrt sein (falls der Prozess-Check
                 # umgangen oder der Browser zwischenzeitlich neu gestartet
                 # wurde) oder Rechte fehlen. mkdir() bewusst INNERHALB des
-                # try-Blocks — sonst wuerde ein einzelner Ordnerfehler die
+                # try-Blocks — sonst würde ein einzelner Ordnerfehler die
                 # komplette Wiederherstellung abbrechen statt nur diese Datei
-                # zu ueberspringen (siehe PROJEKT.md §8.8, analog fuer Restore).
+                # zu überspringen (siehe PROJEKT.md §8.8, analog für Restore).
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(member) as src, open(dest_path, "wb") as dst:
                     dst.write(src.read())

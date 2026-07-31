@@ -1,8 +1,8 @@
-"""Mit Pillow gezeichnete Icons fuer den Startbildschirm.
+"""Mit Pillow gezeichnete Icons für den Startbildschirm.
 
-Pillow ist ueber customtkinter (CTkImage) bereits vorhanden -> kein externes
-Bildmaterial noetig. Jede Zeichenfunktion liefert ein RGBA-Image; ctk_icon()
-verpackt es fuer die GUI.
+Pillow ist über customtkinter (CTkImage) bereits vorhanden -> kein externes
+Bildmaterial nötig. Jede Zeichenfunktion liefert ein RGBA-Image; ctk_icon()
+verpackt es für die GUI.
 """
 
 import math
@@ -10,10 +10,10 @@ import math
 import customtkinter as ctk
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-# Icons liegen auf dem Lila-Verlauf der Startkacheln -> nahezu weisse Formen mit
-# kraeftig-lila Aussparungen fuer guten Kontrast.
-_ACCENT = (245, 242, 255, 255)   # nahezu weiss
-_LIGHT = (98, 42, 178, 255)      # kraeftiges Lila (Detail-Aussparungen)
+# Icons liegen auf dem Lila-Verlauf der Startkacheln -> nahezu weiße Formen mit
+# kräftig-lila Aussparungen für guten Kontrast.
+_ACCENT = (245, 242, 255, 255)   # nahezu weiß
+_LIGHT = (98, 42, 178, 255)      # kräftiges Lila (Detail-Aussparungen)
 
 
 def _canvas(size: int):
@@ -51,9 +51,9 @@ def ctk_gradient(width: int, height: int, radius: int,
 # ---------------------------------------------------------------------------
 # Komplette Kachel als ein Bild (Panel + Rand + Icon + Text)
 #
-# Wird als EINE Grafik gerendert, damit kein ueberlagertes "transparentes"
-# Text-Label die dunkle Fensterfarbe durchscheinen laesst (schwarzer Kasten).
-# Gerendert wird in doppelter Aufloesung (Supersampling) fuer scharfen Text.
+# Wird als EINE Grafik gerendert, damit kein überlagertes "transparentes"
+# Text-Label die dunkle Fensterfarbe durchscheinen lässt (schwarzer Kasten).
+# Gerendert wird in doppelter Auflösung (Supersampling) für scharfen Text.
 # ---------------------------------------------------------------------------
 
 _SS = 2  # Supersampling-Faktor
@@ -70,7 +70,7 @@ _SUBTITLE_COLOR = (190, 176, 224, 255)
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    """Laedt eine System-Schrift (Segoe UI, sonst Arial); Fallback Default."""
+    """Lädt eine System-Schrift (Segoe UI, sonst Arial); Fallback Default."""
     candidates = ([r"C:\Windows\Fonts\segoeuib.ttf", r"C:\Windows\Fonts\arialbd.ttf"]
                   if bold else
                   [r"C:\Windows\Fonts\segoeui.ttf", r"C:\Windows\Fonts\arial.ttf"])
@@ -100,7 +100,7 @@ def _wrap(text: str, font, max_width: float) -> list[str]:
 
 def _draw_centered_block(draw, lines, font, cx: float, top_y: float,
                          fill, gap: int) -> float:
-    """Zeichnet zentrierte Textzeilen ab top_y; liefert das untere y zurueck."""
+    """Zeichnet zentrierte Textzeilen ab top_y; liefert das untere y zurück."""
     ascent, descent = font.getmetrics()
     y = top_y
     for line in lines:
@@ -113,7 +113,7 @@ def _draw_centered_block(draw, lines, font, cx: float, top_y: float,
 def card_image(width: int, height: int, kind: str, title: str, subtitle: str,
                *, hover: bool = False) -> Image.Image:
     """Rendert eine komplette Startkachel (dunkles Lila-Panel mit Leucht-Rand,
-    hellem Icon, weissem Titel, gedaempftem Untertitel) als ein RGBA-Bild."""
+    hellem Icon, weißem Titel, gedämpftem Untertitel) als ein RGBA-Bild."""
     ss = _SS
     w, h = width * ss, height * ss
     radius = round(0.11 * height) * ss
@@ -153,7 +153,7 @@ def ctk_card(width: int, height: int, kind: str, title: str, subtitle: str,
 
 
 # ---------------------------------------------------------------------------
-# Kreativer Lila-Hintergrund fuer den Startbildschirm
+# Kreativer Lila-Hintergrund für den Startbildschirm
 # ---------------------------------------------------------------------------
 
 # Weiche Leucht-"Blobs": (x-Anteil, y-Anteil, Radius-Anteil, RGBA).
@@ -164,7 +164,7 @@ _GLOW_BLOBS = (
     (0.30, 0.82, 0.30, (168, 58, 210, 70)),    # Purpur unten links
 )
 _BG_INNER = (60, 36, 104)   # helleres Lila (Zentrum)
-_BG_OUTER = (16, 9, 30)     # sehr dunkles Lila (Raender)
+_BG_OUTER = (16, 9, 30)     # sehr dunkles Lila (Ränder)
 
 
 def _radial_gradient(width: int, height: int, inner: tuple, outer: tuple,
@@ -242,12 +242,12 @@ def _reinstall(size: int) -> Image.Image:
 
 def _remove(size: int) -> Image.Image:
     img, d = _canvas(size)
-    # Muelltonne: Deckel + Griff + Koerper + Rillen
+    # Mülltonne: Deckel + Griff + Körper + Rillen
     d.rectangle([size * 0.42, size * 0.14, size * 0.58, size * 0.22], fill=_ACCENT)   # Griff
     d.rounded_rectangle([size * 0.22, size * 0.22, size * 0.78, size * 0.30],
                         radius=size * 0.02, fill=_ACCENT)                              # Deckel
     d.rounded_rectangle([size * 0.30, size * 0.32, size * 0.70, size * 0.84],
-                        radius=size * 0.05, fill=_ACCENT)                              # Koerper
+                        radius=size * 0.05, fill=_ACCENT)                              # Körper
     for x in (0.40, 0.50, 0.60):
         d.rectangle([size * x, size * 0.40, size * (x + 0.03), size * 0.76], fill=_LIGHT)
     return img

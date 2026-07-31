@@ -1,7 +1,7 @@
 """
-worker.py — fuehrt eine Backup-/Restore-Funktion in einem eigenen Thread aus.
+worker.py — führt eine Backup-/Restore-Funktion in einem eigenen Thread aus.
 
-Tkinter/customtkinter-Widgets duerfen nur aus dem Haupt-Thread heraus
+Tkinter/customtkinter-Widgets dürfen nur aus dem Haupt-Thread heraus
 angefasst werden. Deshalb landet jeder Fortschritt/jedes Ergebnis in einer
 Queue, die die GUI periodisch per widget.after() abfragt (Poll-Muster) —
 siehe backup_tab.py/restore_tab.py, Methode _poll_worker().
@@ -24,7 +24,7 @@ class Worker:
 
     def start(self, func: Callable[[Callable[[int, int, str], None]], object]) -> None:
         """Startet func(progress_callback) in einem Thread. func muss das
-        Ergebnis zurueckgeben (z.B. BackupResult/RestoreResult) — es wird
+        Ergebnis zurückgeben (z.B. BackupResult/RestoreResult) — es wird
         automatisch als ("done", ergebnis) in die Queue gelegt. Exceptions
         werden als ("error", exception) gemeldet statt den Thread stumm
         sterben zu lassen."""

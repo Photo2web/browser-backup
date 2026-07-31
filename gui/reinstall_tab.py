@@ -1,13 +1,13 @@
 """
 reinstall_tab.py — "Neuinstallation"-Tab der Umzugstool-GUI.
 
-Zwei Quellen fuer die Auswahl:
-1. **Grundausstattung** - eine kuratierte, feste Liste haeufig gebrauchter
+Zwei Quellen für die Auswahl:
+1. **Grundausstattung** - eine kuratierte, feste Liste häufig gebrauchter
    winget-Programme (core/essential_apps.py); auch ohne winget-Laden sichtbar.
-2. **Installierte Programme** - via `winget list` geladen (Internet noetig),
-   winget-faehig ankreuzbar, Rest als "manuell" gekennzeichnet.
+2. **Installierte Programme** - via `winget list` geladen (Internet nötig),
+   winget-fähig ankreuzbar, Rest als "manuell" gekennzeichnet.
 
-Aus der (zusammengefuehrten) Auswahl erzeugt das Tool drei Dateien
+Aus der (zusammengeführten) Auswahl erzeugt das Tool drei Dateien
 (Installationsanweisung.md, Install-Apps.ps1, Apps.ubundle) und kann das
 erzeugte Skript optional direkt starten ("Jetzt installieren").
 """
@@ -32,20 +32,24 @@ from .dialogs import ask_yes_no, show_error, show_info
 from .worker import Worker
 
 _INTERNET_HINWEIS = (
-    "Hinweis: Auflisten und Installieren der Programme benoetigt eine "
-    "Internetverbindung (winget laedt aus dem Netz)."
+    "Hinweis: Auflisten und Installieren der Programme benötigt eine "
+    "Internetverbindung (winget lädt aus dem Netz)."
 )
 
 _MANUAL_TEXT_COLOR = "gray60"
 _CATEGORY_TEXT_COLOR = "gray55"
+
+# Spaltenzahl für die Tabellen-Darstellung (nebeneinander statt lange Liste).
+_ESSENTIALS_COLS = 3   # Grundausstattung: kurze Namen -> 3 Spalten
+_INSTALLED_COLS = 2    # Installierte Programme: längere Zeilen -> 2 Spalten
 
 
 class ReinstallTab(ctk.CTkFrame):
     def __init__(self, master, on_back=None):
         super().__init__(master, fg_color="transparent")
 
-        # Callback zurueck zum Startbildschirm (wie die anderen Modi einen
-        # '‹ Zurueck'-Button haben). None -> kein Button (z.B. in Alt-Tests).
+        # Callback zurück zum Startbildschirm (wie die anderen Modi einen
+        # '‹ Zurück'-Button haben). None -> kein Button (z.B. in Alt-Tests).
         self._on_back = on_back
         self.worker = Worker()
         # (InstalledApp, BooleanVar) je installiertem Programm.
@@ -57,6 +61,9 @@ class ReinstallTab(ctk.CTkFrame):
         self._loaded = False
         self._last_script_path: Path | None = None
         self._last_installable = 0
+        # Cursor für das Raster der installierten Programme (row/col).
+        self._list_row = 0
+        self._list_col = 0
 
         self._build_ui()
 
@@ -89,31 +96,33 @@ class ReinstallTab(ctk.CTkFrame):
         target_frame.grid(row=0, column=1, sticky="ew", padx=12, pady=6)
         target_frame.grid_columnconfigure(0, weight=1)
         self.target_entry = ctk.CTkEntry(
-            target_frame, placeholder_text="Zielordner fuer Anweisung, Skript und Bundle"
+            target_frame, placeholder_text="Zielordner für Anweisung, Skript und Bundle"
         )
         self.target_entry.grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(target_frame, text="Durchsuchen ...", width=110,
                       command=self._choose_target_dir).grid(row=0, column=1, padx=(8, 0))
 
-        # === Oben (fuellt den Rest): Grundausstattung + installierte Programme ===
+        # === Oben (füllt den Rest): Grundausstattung + installierte Programme ===
         if self._on_back is not None:
             back_row = ctk.CTkFrame(self, fg_color="transparent")
             back_row.pack(side="top", fill="x", pady=(0, 4))
-            ctk.CTkButton(back_row, text="‹ Zurueck", width=90, command=self._on_back).pack(side="left")
+            ctk.CTkButton(back_row, text="‹ Zurück", width=90, command=self._on_back).pack(side="left")
             ctk.CTkLabel(back_row, text="Neuinstallation",
                          font=ctk.CTkFont(size=16, weight="bold")).pack(side="left", padx=8)
 
         ess_header = ctk.CTkFrame(self, fg_color="transparent")
         ess_header.pack(side="top", fill="x")
         ctk.CTkLabel(
-            ess_header, text="Grundausstattung (Standard-Programme fuer einen neuen PC):"
+            ess_header, text="Grundausstattung (Standard-Programme für einen neuen PC):"
         ).pack(side="left", padx=(0, 8))
         self.essentials_select_btn = ctk.CTkButton(
-            ess_header, text="Alle auswaehlen", width=120, command=self._select_all_essentials
+            ess_header, text="Alle auswählen", width=120, command=self._select_all_essentials
         )
         self.essentials_select_btn.pack(side="left", padx=4)
 
-        self.essentials_frame = ctk.CTkScrollableFrame(self, height=110)
+        # Grundausstattung als Tabelle (alle Programme auf einen Blick, kein
+        # Scrollen): normaler Frame mit Raster statt scrollbarer Liste.
+        self.essentials_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.essentials_frame.pack(side="top", fill="x", pady=(4, 8))
         self._populate_essentials()
 
@@ -123,11 +132,11 @@ class ReinstallTab(ctk.CTkFrame):
             side="left", padx=(0, 8)
         )
         self.select_winget_btn = ctk.CTkButton(
-            inst_header, text="Alle winget-faehigen", width=150, command=self._select_installable
+            inst_header, text="Alle winget-fähigen", width=150, command=self._select_installable
         )
         self.select_winget_btn.pack(side="left", padx=4)
         self.select_none_btn = ctk.CTkButton(
-            inst_header, text="Alle abwaehlen", width=120, command=self._select_none
+            inst_header, text="Alle abwählen", width=120, command=self._select_none
         )
         self.select_none_btn.pack(side="left", padx=4)
         self.reload_btn = ctk.CTkButton(
@@ -140,29 +149,53 @@ class ReinstallTab(ctk.CTkFrame):
 
         self.list_frame = ctk.CTkScrollableFrame(self, height=120)
         self.list_frame.pack(side="top", fill="both", expand=True, pady=(4, 6))
-        self.status_label = ctk.CTkLabel(
+        for i in range(_INSTALLED_COLS):
+            self.list_frame.grid_columnconfigure(i, weight=1, uniform="prog")
+        self._list_reset()
+        self._list_add_fullwidth(ctk.CTkLabel(
             self.list_frame, text="Noch nicht geladen — bitte 'Aktualisieren' klicken.",
-            text_color="gray70",
-        )
-        self.status_label.pack(anchor="w", padx=8, pady=8)
+            text_color="gray70"))
 
     def _populate_essentials(self):
-        last_category = None
-        for essential in essential_apps():
-            if essential.category != last_category:
-                ctk.CTkLabel(
-                    self.essentials_frame, text=essential.category, text_color=_CATEGORY_TEXT_COLOR
-                ).pack(anchor="w", padx=8, pady=(6, 0))
-                last_category = essential.category
+        """Grundausstattung als Raster (mehrspaltig, keine Kategorien) - alle
+        Programme sind ohne Scrollen sichtbar."""
+        for i in range(_ESSENTIALS_COLS):
+            self.essentials_frame.grid_columnconfigure(i, weight=1, uniform="ess")
+        for idx, essential in enumerate(essential_apps()):
             var = ctk.BooleanVar(value=False)
+            row, col = divmod(idx, _ESSENTIALS_COLS)
             ctk.CTkCheckBox(
-                self.essentials_frame,
-                text=f"{essential.name}   [{essential.package_id}]",
-                variable=var,
-            ).pack(anchor="w", padx=20, pady=1)
+                self.essentials_frame, text=essential.name, variable=var,
+            ).grid(row=row, column=col, sticky="w", padx=10, pady=3)
             self.essential_items.append((essential, var))
 
-    # -- oeffentlich: vom Hauptfenster beim Umschalten aufgerufen --------
+    # -- Raster-Helfer für die installierte-Programme-Liste ------------
+
+    def _list_reset(self):
+        self._list_row = 0
+        self._list_col = 0
+
+    def _list_add_checkbox(self, widget):
+        """Platziert eine Checkbox im Raster (fließt links->rechts, dann
+        nächste Zeile)."""
+        widget.grid(row=self._list_row, column=self._list_col,
+                    sticky="w", padx=10, pady=2)
+        self._list_col += 1
+        if self._list_col >= _INSTALLED_COLS:
+            self._list_col = 0
+            self._list_row += 1
+
+    def _list_add_fullwidth(self, widget, pady=(6, 2)):
+        """Platziert ein Element (Ueberschrift/Meldung) über die volle Breite;
+        eine angefangene Zeile wird vorher abgeschlossen."""
+        if self._list_col != 0:
+            self._list_row += 1
+            self._list_col = 0
+        widget.grid(row=self._list_row, column=0, columnspan=_INSTALLED_COLS,
+                    sticky="w", padx=8, pady=pady)
+        self._list_row += 1
+
+    # -- öffentlich: vom Hauptfenster beim Umschalten aufgerufen --------
 
     def on_show(self):
         """Beim ersten Anzeigen des Tabs die installierten Programme laden."""
@@ -176,10 +209,9 @@ class ReinstallTab(ctk.CTkFrame):
             return
 
         self._clear_checklist()
-        self.status_label = ctk.CTkLabel(
-            self.list_frame, text="Programme werden geladen (winget) ...", text_color="gray70"
-        )
-        self.status_label.pack(anchor="w", padx=8, pady=8)
+        self._list_add_fullwidth(ctk.CTkLabel(
+            self.list_frame, text="Programme werden geladen (winget) ...",
+            text_color="gray70"))
         self._set_controls_enabled(False)
         self._log("Lade installierte Programme via winget ...")
 
@@ -218,14 +250,15 @@ class ReinstallTab(ctk.CTkFrame):
 
         self._log(
             f"{len(apps)} installierte Programme gefunden "
-            f"({len(installable)} winget-faehig, {len(manual)} manuell)."
+            f"({len(installable)} winget-fähig, {len(manual)} manuell)."
         )
         if not apps:
-            ctk.CTkLabel(self.list_frame, text="Keine Programme gefunden.",
-                         text_color="gray70").pack(anchor="w", padx=8, pady=8)
+            self._list_add_fullwidth(ctk.CTkLabel(
+                self.list_frame, text="Keine Programme gefunden.",
+                text_color="gray70"))
 
         # Zuvor entfernte Programme als Wiederherstell-Quelle anbieten (gegen die
-        # geladene winget-Liste abgeglichen: Treffer -> winget-faehig, Rest manuell).
+        # geladene winget-Liste abgeglichen: Treffer -> winget-fähig, Rest manuell).
         self._add_removed_section(apps)
 
     def _on_load_error(self, exc: Exception):
@@ -233,20 +266,21 @@ class ReinstallTab(ctk.CTkFrame):
         self._clear_checklist()
         if isinstance(exc, WinGetUnavailable):
             msg = ("winget wurde nicht gefunden. Der 'App-Installer' muss installiert "
-                   "sein (Windows 10/11). Die Grundausstattung kann trotzdem gewaehlt werden.")
+                   "sein (Windows 10/11). Die Grundausstattung kann trotzdem gewählt werden.")
         elif isinstance(exc, WinGetTimeout):
             msg = "winget hat zu lange gebraucht. Bitte 'Aktualisieren' erneut versuchen."
         else:
             msg = f"Programme konnten nicht geladen werden: {exc}"
-        ctk.CTkLabel(self.list_frame, text=msg, text_color="gray70", wraplength=780,
-                     justify="left").pack(anchor="w", padx=8, pady=8)
+        self._list_add_fullwidth(ctk.CTkLabel(
+            self.list_frame, text=msg, text_color="gray70", wraplength=780,
+            justify="left"))
         # Zuvor entfernte Programme trotzdem anzeigen (ohne winget-Abgleich -> manuell).
         self._add_removed_section([])
         self._log(f"FEHLER beim Laden: {exc}")
 
     def _add_removed_section(self, winget_apps: list[InstalledApp]):
         """Zeigt zuvor entfernte Programme als Wiederherstell-Quelle. Treffer in
-        der winget-Liste werden winget-faehig (nutzen deren package_id), der Rest
+        der winget-Liste werden winget-fähig (nutzen deren package_id), der Rest
         ist 'manuell'. Ohne gespeicherte Liste passiert nichts."""
         removed = load_removed()
         if not removed:
@@ -254,10 +288,9 @@ class ReinstallTab(ctk.CTkFrame):
         installable_by_name = {
             a.name.strip().lower(): a for a in winget_apps if a.winget_installable
         }
-        ctk.CTkLabel(
+        self._list_add_fullwidth(ctk.CTkLabel(
             self.list_frame, text="Zuletzt entfernte Programme (zum Wiederherstellen):",
-            text_color=_CATEGORY_TEXT_COLOR,
-        ).pack(anchor="w", padx=8, pady=(10, 2))
+            text_color=_CATEGORY_TEXT_COLOR), pady=(10, 2))
         for entry in removed:
             name = str(entry.get("name", "")).strip()
             if not name:
@@ -267,28 +300,25 @@ class ReinstallTab(ctk.CTkFrame):
             if match is not None:
                 app = match
                 checkbox = ctk.CTkCheckBox(
-                    self.list_frame, text=f"{app.name}   [{app.package_id}]   (entfernt)",
-                    variable=var)
+                    self.list_frame, text=f"{app.name}   (entfernt)", variable=var)
             else:
                 app = InstalledApp(name=name, package_id=None,
                                    version=entry.get("version"), source=None)
                 checkbox = ctk.CTkCheckBox(
-                    self.list_frame, text=f"{name}   (manuell — kein winget-Paket)",
+                    self.list_frame, text=f"{name}   (manuell)",
                     variable=var, text_color=_MANUAL_TEXT_COLOR)
-            checkbox.pack(anchor="w", padx=8, pady=1)
+            self._list_add_checkbox(checkbox)
             self.removed_items.append((app, var))
 
     def _add_row(self, app: InstalledApp):
         var = ctk.BooleanVar(value=False)
         if app.winget_installable:
-            label = f"{app.name}   [{app.package_id}]   ({app.source})"
-            checkbox = ctk.CTkCheckBox(self.list_frame, text=label, variable=var)
+            checkbox = ctk.CTkCheckBox(self.list_frame, text=app.name, variable=var)
         else:
-            label = f"{app.name}   (manuell — kein winget-Paket)"
             checkbox = ctk.CTkCheckBox(
-                self.list_frame, text=label, variable=var, text_color=_MANUAL_TEXT_COLOR
-            )
-        checkbox.pack(anchor="w", padx=8, pady=1)
+                self.list_frame, text=f"{app.name}   (manuell)", variable=var,
+                text_color=_MANUAL_TEXT_COLOR)
+        self._list_add_checkbox(checkbox)
         self.items.append((app, var))
 
     # -- Hilfsfunktionen -------------------------------------------------
@@ -298,6 +328,7 @@ class ReinstallTab(ctk.CTkFrame):
             child.destroy()
         self.items = []
         self.removed_items = []
+        self._list_reset()
 
     def _select_installable(self):
         for app, var in self.items:
@@ -316,7 +347,7 @@ class ReinstallTab(ctk.CTkFrame):
         for btn in (self.select_winget_btn, self.select_none_btn, self.reload_btn,
                     self.create_button, self.essentials_select_btn):
             btn.configure(state=state)
-        # "Jetzt installieren" nur, wenn ein Plan mit winget-faehigen Apps existiert.
+        # "Jetzt installieren" nur, wenn ein Plan mit winget-fähigen Apps existiert.
         install_state = "normal" if (enabled and self._last_installable > 0) else "disabled"
         self.install_button.configure(state=install_state)
 
@@ -356,12 +387,12 @@ class ReinstallTab(ctk.CTkFrame):
         selected = self._gather_selected()
         if not selected:
             show_error(self, "Keine Auswahl",
-                       "Bitte mindestens ein Programm (Grundausstattung oder installiert) auswaehlen.")
+                       "Bitte mindestens ein Programm (Grundausstattung oder installiert) auswählen.")
             return
 
         dest_text = self.target_entry.get().strip()
         if not dest_text:
-            show_error(self, "Kein Zielordner", "Bitte einen Zielordner auswaehlen.")
+            show_error(self, "Kein Zielordner", "Bitte einen Zielordner auswählen.")
             return
         dest_dir = Path(dest_text)
 
@@ -380,7 +411,7 @@ class ReinstallTab(ctk.CTkFrame):
         )
 
         self._log(
-            f"Erzeugt: {result.installable_count} winget-faehig, "
+            f"Erzeugt: {result.installable_count} winget-fähig, "
             f"{result.manual_count} manuell -> {dest_dir}"
         )
         summary = (
@@ -391,8 +422,8 @@ class ReinstallTab(ctk.CTkFrame):
             f"Automatisch installierbar: {result.installable_count}\n"
             f"Manuell: {result.manual_count}\n\n"
             "Auf dem neuen Rechner: 'Jetzt installieren' klicken (installiert auf DIESEM "
-            "Rechner) oder Install-Apps.ps1 dorthin kopieren und ausfuehren. "
-            "Internetverbindung noetig."
+            "Rechner) oder Install-Apps.ps1 dorthin kopieren und ausführen. "
+            "Internetverbindung nötig."
         )
         show_info(self, "Neuinstallation vorbereitet", summary)
 

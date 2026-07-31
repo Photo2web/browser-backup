@@ -1,11 +1,11 @@
 """Startbildschirm: kreativer Lila-Hintergrund (Radialverlauf + leuchtende
-Blobs) mit vier gleich grossen, edlen Lila-Kacheln im 2x2-Raster.
+Blobs) mit vier gleich großen, edlen Lila-Kacheln im 2x2-Raster.
 
 Der Hintergrund wird als Bild gerendert (home_icons.home_background) und liegt
 in einem einfachen tk.Label hinter den Kacheln - so bleibt er von der CTk-
-Skalierung unberuehrt und fuellt exakt das Fenster. Die Kacheln sind einzelne,
+Skalierung unberührt und füllt exakt das Fenster. Die Kacheln sind einzelne,
 klickbare Bild-Labels (opak), die sauber darauf sitzen. Beide werden bei
-Groessenaenderung neu ausgelegt."""
+Größenänderung neu ausgelegt."""
 
 import tkinter as tk
 
@@ -15,18 +15,23 @@ from PIL import ImageTk
 from .home_icons import ctk_card, home_background
 
 _CARDS = [
-    ("save", "Sichern", "Browser & persoenliche Daten", "on_backup"),
-    ("restore", "Wiederherstellen", "Gesicherte Daten zurueckspielen", "on_restore"),
+    ("save", "Sichern", "Browser & persönliche Daten", "on_backup"),
+    ("restore", "Wiederherstellen", "Gesicherte Daten zurückspielen", "on_restore"),
     ("reinstall", "Neuinstallation", "Programme neu aufsetzen", "on_reinstall"),
     ("remove", "Software entfernen", "Programme deinstallieren", "on_uninstall"),
 ]
 
-# Einheitliche Kachelgroesse (alle Kacheln exakt gleich).
+# Einheitliche Kachelgröße (alle Kacheln exakt gleich).
 _CARD_W, _CARD_H = 235, 172
-_TITLE = "Was moechtest du tun?"
-# Relative Kachel-Mittelpunkte (2x2), skalierungsunabhaengig.
+_TITLE = "Was möchtest du tun?"
+# Relative Kachel-Mittelpunkte (2x2), skalierungsunabhängig.
 _CARD_POS = [(0.30, 0.44), (0.70, 0.44), (0.30, 0.75), (0.70, 0.75)]
 _FALLBACK_BG = "#140c22"   # bis das erste Hintergrundbild gerendert ist
+# Füllfarbe der Kachel-Labels: passt zum Lila-Hintergrund an den Kachel-
+# positionen (Mittelwert ~#462373), damit die runden Kachelecken NICHT schwarz
+# wirken, sondern im Hintergrund untergehen. (Ein CTk-"transparentes" Label
+# zeigt die dunkle Fensterfarbe, nicht das dahinterliegende Hintergrundbild.)
+_CARD_FILL = "#42236f"
 
 
 class HomeScreen(ctk.CTkFrame):
@@ -55,15 +60,15 @@ class HomeScreen(ctk.CTkFrame):
         hover = ctk_card(_CARD_W, _CARD_H, kind, title, subtitle, hover=True)
         self._images.append((normal, hover))
 
-        label = ctk.CTkLabel(self, text="", image=normal, fg_color="transparent")
+        label = ctk.CTkLabel(self, text="", image=normal, fg_color=_CARD_FILL)
         label.place(relx=relx, rely=rely, anchor="center")
-        # Explizit ueber das Hintergrund-Label heben (Stapelreihenfolge sichern).
+        # Explizit über das Hintergrund-Label heben (Stapelreihenfolge sichern).
         label.lift(self._bg_label)
         label.bind("<Button-1>", lambda _e, c=command: c())
         label.bind("<Enter>", lambda _e, lbl=label, h=hover: lbl.configure(image=h))
         label.bind("<Leave>", lambda _e, lbl=label, n=normal: lbl.configure(image=n))
 
-    # -- Hintergrund bei Groessenaenderung neu rendern (entprellt) --------
+    # -- Hintergrund bei Größenänderung neu rendern (entprellt) --------
 
     def _on_resize(self, event):
         size = (event.width, event.height)
@@ -81,6 +86,6 @@ class HomeScreen(ctk.CTkFrame):
         image = home_background(width, height, title=_TITLE)
         self._bg_photo = ImageTk.PhotoImage(image)
         self._bg_label.configure(image=self._bg_photo)
-        # NICHT .lower() aufrufen: das wuerde das Label unter die interne
-        # Zeichenflaeche des CTkFrame schieben und damit unsichtbar machen. Die
-        # Kacheln liegen ueber dem Label, weil sie danach erzeugt+gehoben werden.
+        # NICHT .lower() aufrufen: das würde das Label unter die interne
+        # Zeichenfläche des CTkFrame schieben und damit unsichtbar machen. Die
+        # Kacheln liegen über dem Label, weil sie danach erzeugt+gehoben werden.

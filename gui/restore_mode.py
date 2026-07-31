@@ -1,4 +1,4 @@
-"""Wiederherstellen-Modus: Sub-Tabs (Browser / Persoenliche Daten)."""
+"""Wiederherstellen-Modus: Sub-Tabs (Browser / Persönliche Daten)."""
 
 import customtkinter as ctk
 
@@ -15,12 +15,12 @@ class RestoreMode(ctk.CTkFrame):
     def _build(self):
         top = ctk.CTkFrame(self, fg_color="transparent")
         top.pack(fill="x")
-        ctk.CTkButton(top, text="‹ Zurueck", width=90, command=self._on_back).pack(side="left")
+        ctk.CTkButton(top, text="‹ Zurück", width=90, command=self._on_back).pack(side="left")
         ctk.CTkLabel(top, text="Wiederherstellen",
                      font=ctk.CTkFont(size=16, weight="bold")).pack(side="left", padx=8)
 
         self.subtabs = ctk.CTkSegmentedButton(
-            self, values=["Browser", "Persoenliche Daten"], command=self._switch)
+            self, values=["Browser", "Persönliche Daten"], command=self._switch)
         self.subtabs.set("Browser")
         self.subtabs.pack(fill="x", pady=(8, 8))
 

@@ -26,7 +26,7 @@ from .browsers import Browser, Profile
 # Zeichen, die in Windows-Dateinamen nicht erlaubt sind.
 _INVALID_FILENAME_CHARS = '<>:"/\\|?*'
 
-# Callback-Signatur fuer Fortschrittsmeldungen: (aktuell, gesamt, meldung).
+# Callback-Signatur für Fortschrittsmeldungen: (aktuell, gesamt, meldung).
 ProgressCallback = Callable[[int, int, str], None]
 
 
@@ -47,15 +47,15 @@ def _sanitize_filename_part(text: str) -> str:
 
 
 def _iter_profile_files(profile_root: Path, browser_key: str, exclude_cache: bool, walk_errors: list[str]):
-    """Liefert (absoluter_pfad, relativer_posix_pfad) fuer alle zu sichernden
+    """Liefert (absoluter_pfad, relativer_posix_pfad) für alle zu sichernden
     Dateien im Profil. Blacklist-Ordner werden beim Durchlaufen komplett
-    uebersprungen (kein Abstieg in Cache-Ordner) statt nachtraeglich
-    gefiltert zu werden — spart Zeit bei grossen Cache-Ordnern.
+    übersprungen (kein Abstieg in Cache-Ordner) statt nachträglich
+    gefiltert zu werden — spart Zeit bei großen Cache-Ordnern.
 
     walk_errors: os.walk() ignoriert per Default JEDEN Fehler beim Auflisten
     eines Unterordners lautlos (z.B. gesperrter/unlesbarer Ordner) — ohne
-    onerror-Callback wuerde ein solcher Ordner spurlos fehlen, ohne dass es
-    im Ergebnis auftaucht. Der Callback traegt das stattdessen hier ein.
+    onerror-Callback würde ein solcher Ordner spurlos fehlen, ohne dass es
+    im Ergebnis auftaucht. Der Callback trägt das stattdessen hier ein.
     """
 
     def _on_walk_error(exc: OSError) -> None:
@@ -92,12 +92,12 @@ def backup_profile(
     Parameter:
         browser: erkannter Browser (aus browsers.detect_browsers())
         profile: zu sicherndes Profil
-        dest_dir: Zielordner fuer die ZIP-Datei (wird bei Bedarf angelegt)
+        dest_dir: Zielordner für die ZIP-Datei (wird bei Bedarf angelegt)
         exclude_cache: Cache-Blacklist anwenden (Default: an, siehe GUI-Checkbox)
         progress_callback: optional, wird mit (aktuell, gesamt, meldung) aufgerufen
 
-    Rueckgabe: BackupResult mit Pfad zur ZIP-Datei, Manifest-Inhalt und
-    einer Liste gesperrter/unlesbarer Dateien (Sicherung bricht dafuer
+    Rückgabe: BackupResult mit Pfad zur ZIP-Datei, Manifest-Inhalt und
+    einer Liste gesperrter/unlesbarer Dateien (Sicherung bricht dafür
     NICHT ab).
     """
     if not profile.path.exists():
@@ -130,7 +130,7 @@ def backup_profile(
                 written += 1
             except (OSError, PermissionError) as exc:
                 # UNSICHER: Manche Firefox-/Chromium-Dateien (z.B. *.sqlite-wal
-                # bei laufendem Browser) koennen kurzzeitig gesperrt sein.
+                # bei laufendem Browser) können kurzzeitig gesperrt sein.
                 # Deshalb einzeln abfangen statt die Sicherung abzubrechen.
                 locked_files.append(f"{rel_posix} ({exc})")
 
@@ -191,6 +191,6 @@ if __name__ == "__main__":
 
         print(f"\nFertig: {result.zip_path}")
         print(f"Dateien gesichert: {result.file_count}")
-        print(f"Gesperrte/uebersprungene Dateien: {len(result.locked_files)}")
+        print(f"Gesperrte/übersprungene Dateien: {len(result.locked_files)}")
         for locked in result.locked_files[:10]:
             print(f"  ! {locked}")

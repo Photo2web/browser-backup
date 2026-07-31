@@ -2,14 +2,14 @@
 uninstall_screen.py — "Software entfernen"-Karte der Umzugstool-GUI.
 
 Listet alle installierten Programme (aus der Uninstall-Registry), gruppiert nach
-Scope (nur dieser Benutzer / alle Benutzer), laesst sie ankreuzen und startet
-nach einer Sammelbestaetigung ein separates Skript, das sie der Reihe nach
+Scope (nur dieser Benutzer / alle Benutzer), lässt sie ankreuzen und startet
+nach einer Sammelbestätigung ein separates Skript, das sie der Reihe nach
 entfernt. Die Auswahl wird zugleich als Wiederherstell-Liste gespeichert, die im
 Neuinstallation-Bereich zum Wiederholen bereitsteht.
 
-Der Registry-Scan laeuft im Worker-Thread (Poll per after()), damit die GUI
+Der Registry-Scan läuft im Worker-Thread (Poll per after()), damit die GUI
 nicht einfriert. Die eigentliche Deinstallation und die Registry-/Skript-Logik
-liegen GUI-unabhaengig in core/.
+liegen GUI-unabhängig in core/.
 """
 
 import queue
@@ -23,7 +23,7 @@ from core.uninstallplan import write_and_launch_uninstall
 from .dialogs import ask_yes_no, show_error, show_info
 from .worker import Worker
 
-_HINT = ("Hinweis: Manche Programme werden still entfernt, andere oeffnen ihren "
+_HINT = ("Hinweis: Manche Programme werden still entfernt, andere öffnen ihren "
          "eigenen Uninstaller zum Durchklicken. 'Alle Benutzer' erfordert "
          "Administrator-Rechte (Windows fragt per UAC nach).")
 _GROUP_COLOR = "gray55"
@@ -50,15 +50,15 @@ class UninstallScreen(ctk.CTkFrame):
         button_row = ctk.CTkFrame(self, fg_color="transparent")
         button_row.pack(side="bottom", pady=(6, 4))
         self.remove_button = ctk.CTkButton(
-            button_row, text="Ausgewaehlte entfernen",
+            button_row, text="Ausgewählte entfernen",
             command=self._on_remove_clicked, state="disabled")
         self.remove_button.pack(side="left", padx=6)
 
-        # Oben: Zurueck + Titel.
+        # Oben: Zurück + Titel.
         if self._on_back is not None:
             back_row = ctk.CTkFrame(self, fg_color="transparent")
             back_row.pack(side="top", fill="x", pady=(0, 4))
-            ctk.CTkButton(back_row, text="‹ Zurueck", width=90,
+            ctk.CTkButton(back_row, text="‹ Zurück", width=90,
                           command=self._on_back).pack(side="left")
             ctk.CTkLabel(back_row, text="Software entfernen",
                          font=ctk.CTkFont(size=16, weight="bold")).pack(side="left", padx=8)
@@ -66,10 +66,10 @@ class UninstallScreen(ctk.CTkFrame):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(side="top", fill="x")
         ctk.CTkLabel(header, text="Installierte Programme:").pack(side="left", padx=(0, 8))
-        self.select_all_btn = ctk.CTkButton(header, text="Alle auswaehlen", width=120,
+        self.select_all_btn = ctk.CTkButton(header, text="Alle auswählen", width=120,
                                              command=self._select_all, state="disabled")
         self.select_all_btn.pack(side="left", padx=4)
-        self.select_none_btn = ctk.CTkButton(header, text="Alle abwaehlen", width=120,
+        self.select_none_btn = ctk.CTkButton(header, text="Alle abwählen", width=120,
                                               command=self._select_none, state="disabled")
         self.select_none_btn.pack(side="left", padx=4)
         self.reload_btn = ctk.CTkButton(header, text="Aktualisieren", width=120,
@@ -138,7 +138,7 @@ class UninstallScreen(ctk.CTkFrame):
         user = [p for p in programs if p.scope == "user"]
         machine = [p for p in programs if p.scope == "machine"]
         self._add_group("Nur dieser Benutzer", user)
-        self._add_group("Alle Benutzer (Administrator-Rechte noetig)", machine)
+        self._add_group("Alle Benutzer (Administrator-Rechte nötig)", machine)
         self.remove_button.configure(state="normal")
         self._log(f"{len(programs)} Programme gefunden "
                   f"({len(user)} nur dieser Benutzer, {len(machine)} alle Benutzer).")
@@ -210,13 +210,13 @@ class UninstallScreen(ctk.CTkFrame):
         preview = [f"- {p.name}" for p in selected[:25]]
         if len(selected) > 25:
             preview.append(f"... und {len(selected) - 25} weitere")
-        admin_hint = ("\n\nDarunter Programme fuer ALLE Benutzer - dafuer fragt Windows "
+        admin_hint = ("\n\nDarunter Programme für ALLE Benutzer - dafür fragt Windows "
                       "nach Administrator-Rechten (UAC).") if machine else ""
         confirm = ask_yes_no(
             self, "Wirklich entfernen?",
             f"Diese {len(selected)} Programme werden deinstalliert:\n\n"
             + "\n".join(preview) + admin_hint
-            + "\n\nDer Fortschritt laeuft in einem separaten Fenster. Fortfahren?")
+            + "\n\nDer Fortschritt läuft in einem separaten Fenster. Fortfahren?")
         if not confirm:
             return
 
@@ -235,14 +235,14 @@ class UninstallScreen(ctk.CTkFrame):
                        f"Deinstallation konnte nicht gestartet werden:\n{exc}")
             return
 
-        # Auswahl zuruecksetzen, damit der naechste Schritt sauber beginnt.
+        # Auswahl zurücksetzen, damit der nächste Schritt sauber beginnt.
         self._select_none()
 
         self._log(f"Deinstallation gestartet: {script}")
         show_info(
             self, "Deinstallation gestartet",
             "Der Fortschritt erscheint in einem separaten Fenster. Bei Programmen "
-            "fuer alle Benutzer bitte die Windows-Abfrage (UAC) bestaetigen.\n\n"
+            "für alle Benutzer bitte die Windows-Abfrage (UAC) bestätigen.\n\n"
             "Wenn das separate Fenster fertig ist, hier auf 'Aktualisieren' klicken - "
             "dann verschwinden die entfernten Programme aus der Liste und du kannst in "
             "kleinen Schritten weitere Programme entfernen.\n\n"

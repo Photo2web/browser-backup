@@ -1,14 +1,14 @@
-"""Erkennung installierter Programme ueber die Windows-Uninstall-Registry.
+"""Erkennung installierter Programme über die Windows-Uninstall-Registry.
 
-GUI-unabhaengig und einzeln testbar. Liefert eine Liste von ``InstalledProgram``
+GUI-unabhängig und einzeln testbar. Liefert eine Liste von ``InstalledProgram``
 aus den Uninstall-Keys von HKLM (alle Benutzer, 64- und 32-Bit-View) sowie HKCU
 (nur dieser Benutzer). Der Scope steht durch die Hive fest: HKLM = ``machine``
 (Deinstallation braucht Admin), HKCU = ``user``.
 
-Gelesen wird mit Pythons eingebautem ``winreg`` (keine Fremd-Abhaengigkeit). Auf
+Gelesen wird mit Pythons eingebautem ``winreg`` (keine Fremd-Abhängigkeit). Auf
 Nicht-Windows oder ohne winreg ist die Liste leer. Das eigentliche Filtern/
 Umwandeln passiert in reinen Funktionen, sodass Tests eine Mock-Registry
-(Liste aus (values, scope, key_path)-Tupeln) einspeisen koennen.
+(Liste aus (values, scope, key_path)-Tupeln) einspeisen können.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ try:
 except ImportError:  # pragma: no cover - Nicht-Windows
     winreg = None
 
-# Registry-Eintraege dieser ReleaseType-Werte sind Updates/Hotfixes -> ausblenden.
+# Registry-Einträge dieser ReleaseType-Werte sind Updates/Hotfixes -> ausblenden.
 _UPDATE_RELEASE_TYPES = frozenset({"update", "hotfix", "security update"})
 
 
@@ -44,7 +44,7 @@ class InstalledProgram:
 
 
 # ---------------------------------------------------------------------------
-# Reine Umwandlung/Filterung (testbar mit Mock-Eintraegen)
+# Reine Umwandlung/Filterung (testbar mit Mock-Einträgen)
 # ---------------------------------------------------------------------------
 
 def _as_int(value) -> int | None:
@@ -125,7 +125,7 @@ _UNINSTALL_SUBKEY = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 
 
 def _read_values(key) -> dict:
-    """Alle Werte eines geoeffneten Registry-Keys als Dict."""
+    """Alle Werte eines geöffneten Registry-Keys als Dict."""
     values: dict = {}
     try:
         value_count = winreg.QueryInfoKey(key)[1]
@@ -141,8 +141,8 @@ def _read_values(key) -> dict:
 
 
 def _read_root(hive, view_flag: int, scope: str):
-    """Liefert (values, scope, key_path) fuer jeden Unterschluessel eines
-    Uninstall-Roots. Fehler (fehlender Schluessel, Zugriff) -> uebersprungen."""
+    """Liefert (values, scope, key_path) für jeden Unterschlüssel eines
+    Uninstall-Roots. Fehler (fehlender Schlüssel, Zugriff) -> übersprungen."""
     access = winreg.KEY_READ | view_flag
     try:
         root = winreg.OpenKey(hive, _UNINSTALL_SUBKEY, 0, access)
@@ -165,7 +165,7 @@ def _read_root(hive, view_flag: int, scope: str):
 
 
 def _iter_raw_entries():
-    """Alle Roh-Eintraege aus HKLM (64/32-Bit) + HKCU. Leer ohne winreg."""
+    """Alle Roh-Einträge aus HKLM (64/32-Bit) + HKCU. Leer ohne winreg."""
     if winreg is None:
         return
     roots = [

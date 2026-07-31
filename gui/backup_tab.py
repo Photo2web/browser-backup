@@ -2,7 +2,7 @@
 backup_tab.py — "Sichern"-Tab der Umzugstool-GUI.
 
 Alle gefundenen Browser/Profil-Kombinationen erscheinen als Checkliste —
-der Nutzer kann einzelne, mehrere oder per "Alle auswaehlen" alle auf
+der Nutzer kann einzelne, mehrere oder per "Alle auswählen" alle auf
 einmal sichern (jede Kombination landet in einer eigenen ZIP-Datei).
 """
 
@@ -21,8 +21,8 @@ from .worker import Worker
 # Deutlicher Hinweis aus PROJEKT.md §6.2 — wird gezeigt, sobald mindestens
 # ein Chromium-basierter Browser (Chrome, Edge, Brave, Opera, Ecosia, ...) dabei war.
 CHROMIUM_PASSWORD_HINWEIS = (
-    "Hinweis: Chromium-Passwoerter/Cookies funktionieren nur auf demselben "
-    "Windows-Konto/PC. Fuer PC-uebergreifende Passwoerter: Chrome-Sync oder "
+    "Hinweis: Chromium-Passwörter/Cookies funktionieren nur auf demselben "
+    "Windows-Konto/PC. Für PC-übergreifende Passwörter: Chrome-Sync oder "
     "ein Passwortmanager (z. B. Vaultwarden)."
 )
 
@@ -47,10 +47,10 @@ class BackupTab(ctk.CTkFrame):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x")
         ctk.CTkLabel(header, text="Zu sichernde Profile:").pack(side="left", padx=(0, 8))
-        ctk.CTkButton(header, text="Alle auswaehlen", width=120, command=self._select_all).pack(
+        ctk.CTkButton(header, text="Alle auswählen", width=120, command=self._select_all).pack(
             side="left", padx=4
         )
-        ctk.CTkButton(header, text="Alle abwaehlen", width=120, command=self._select_none).pack(
+        ctk.CTkButton(header, text="Alle abwählen", width=120, command=self._select_none).pack(
             side="left", padx=4
         )
 
@@ -66,7 +66,7 @@ class BackupTab(ctk.CTkFrame):
         # kein eigenes Ziel-Feld mehr hier.
         self.exclude_cache_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            form, text="Cache/temporaere Daten ausschliessen", variable=self.exclude_cache_var
+            form, text="Cache/temporäre Daten ausschließen", variable=self.exclude_cache_var
         ).grid(row=0, column=1, sticky="w", padx=12, pady=8)
 
         self.start_button = ctk.CTkButton(self, text="Sichern", command=self._on_start_clicked)
@@ -80,7 +80,7 @@ class BackupTab(ctk.CTkFrame):
         self.log_box.pack(fill="both", expand=True)
 
         if not self.browsers:
-            self._log("Kein unterstuetzter Browser (Firefox/Chrome/Edge/...) gefunden.")
+            self._log("Kein unterstützter Browser (Firefox/Chrome/Edge/...) gefunden.")
 
     def _populate_checklist(self):
         for browser in self.browsers:
@@ -118,7 +118,7 @@ class BackupTab(ctk.CTkFrame):
 
         selected = [(b, p) for (b, p, var) in self.items if var.get()]
         if not selected:
-            show_error(self, "Keine Auswahl", "Bitte mindestens ein Profil auswaehlen.")
+            show_error(self, "Keine Auswahl", "Bitte mindestens ein Profil auswählen.")
             return
 
         dest_base = self.dir_provider.resolve_target()
@@ -126,8 +126,8 @@ class BackupTab(ctk.CTkFrame):
             return
         dest_dir = self.dir_provider.module_dir("Browser")
 
-        # Jeden betroffenen Browser nur einmal auf "laeuft gerade" pruefen,
-        # auch wenn mehrere seiner Profile ausgewaehlt sind.
+        # Jeden betroffenen Browser nur einmal auf "läuft gerade" prüfen,
+        # auch wenn mehrere seiner Profile ausgewählt sind.
         distinct_browsers = list({b.key: b for b, _ in selected}.values())
         for browser in distinct_browsers:
             if is_browser_running(browser.key):
@@ -141,7 +141,7 @@ class BackupTab(ctk.CTkFrame):
 
         exclude_cache = self.exclude_cache_var.get()
 
-        self.start_button.configure(state="disabled", text="Sicherung laeuft ...")
+        self.start_button.configure(state="disabled", text="Sicherung läuft ...")
         self.progress_bar.reset()
         self.log_box.configure(state="normal")
         self.log_box.delete("1.0", "end")
@@ -212,7 +212,7 @@ class BackupTab(ctk.CTkFrame):
             f"Dateien insgesamt: {total_files}",
         ]
         if total_locked:
-            summary_lines.append(f"Gesperrte/uebersprungene Dateien insgesamt: {total_locked}")
+            summary_lines.append(f"Gesperrte/übersprungene Dateien insgesamt: {total_locked}")
         if results:
             summary_lines.append(f"Zielordner: {results[0][2].zip_path.parent}")
         if any_chromium:

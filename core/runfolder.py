@@ -1,6 +1,6 @@
-"""Lauf-Ordner-Logik fuer den Sichern-Modus.
+"""Lauf-Ordner-Logik für den Sichern-Modus.
 
-Ein Sicherungslauf buendelt alle Modul-Sicherungen einer Sitzung in einem
+Ein Sicherungslauf bündelt alle Modul-Sicherungen einer Sitzung in einem
 Ordner mit Zeitstempel (``Umzug_<YYYY-MM-DD_HHMM>``); jedes Modul bekommt darin
 seinen eigenen Unterordner (``Browser``, ``PersoenlicheDaten``). Rein
 dateisystembasiert und ohne GUI -> gut testbar.
@@ -28,7 +28,7 @@ class RunFolder:
         self.root = self.base_dir / f"Umzug_{self.timestamp}"
 
     def module_dir(self, name: str) -> Path:
-        """Legt <root>/<name> an (falls noetig) und gibt den Pfad zurueck."""
+        """Legt <root>/<name> an (falls nötig) und gibt den Pfad zurück."""
         target = self.root / name
         target.mkdir(parents=True, exist_ok=True)
         return target

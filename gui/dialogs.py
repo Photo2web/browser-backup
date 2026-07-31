@@ -3,18 +3,18 @@ dialogs.py — wiederverwendete Dialoge im App-Design (Dark-Theme).
 
 Statt der nativen tkinter.messagebox-Dialoge (die hell aussehen und nicht zum
 customtkinter-Theme passen) werden hier einheitliche CTkToplevel-Dialoge
-verwendet: Info, Fehler, Ja/Nein und die Browser-laeuft-Abfrage.
+verwendet: Info, Fehler, Ja/Nein und die Browser-läuft-Abfrage.
 """
 
 import customtkinter as ctk
 
-# Akzentfarbe fuer Fehlertitel.
+# Akzentfarbe für Fehlertitel.
 _ERROR_COLOR = "#e05a4d"
 
 
 def _root(widget):
-    """Loest zu einer beliebigen Widget-Referenz das eigentliche Toplevel-
-    Fenster auf — noetig fuer wm-Operationen wie transient()/grab_set(),
+    """Löst zu einer beliebigen Widget-Referenz das eigentliche Toplevel-
+    Fenster auf — nötig für wm-Operationen wie transient()/grab_set(),
     die nur auf echten Toplevel-Fenstern funktionieren, nicht auf Frames."""
     return widget.winfo_toplevel()
 
@@ -24,7 +24,7 @@ def _themed_dialog(parent, title, message, buttons, *, escape_value,
     """Generischer, themed Dialog.
 
     buttons: Liste von (label, value, fg_color|None). Der Dialog gibt den
-    value des geklickten Buttons zurueck; Escape/Schliessen liefert
+    value des geklickten Buttons zurück; Escape/Schließen liefert
     escape_value.
     """
     root = _root(parent)
@@ -58,11 +58,11 @@ def _themed_dialog(parent, title, message, buttons, *, escape_value,
         if stacked:
             btn.pack(fill="x", pady=2)
         else:
-            # nebeneinander, primaerer (erster) Button rechts
+            # nebeneinander, primärer (erster) Button rechts
             btn.pack(side="right", padx=(6, 0))
 
-    # Groesse aus dem tatsaechlich benoetigten Platz berechnen (robust gegen
-    # Schriftgroesse/DPI) und ueber dem Hauptfenster zentrieren.
+    # Größe aus dem tatsächlich benötigten Platz berechnen (robust gegen
+    # Schriftgröße/DPI) und über dem Hauptfenster zentrieren.
     dialog.update_idletasks()
     width = max(340, dialog.winfo_reqwidth())
     height = dialog.winfo_reqheight()
@@ -100,16 +100,16 @@ def ask_yes_no(parent, title: str, message: str) -> bool:
 
 
 def ask_conflict_mode(parent) -> str:
-    """Konfliktverhalten fuer die Wiederherstellung.
-    Rueckgabe: 'skip' | 'newer' | 'overwrite' | 'abbrechen'.
-    Escape/Schliessen -> 'abbrechen' (zerstoerungsfrei, echter Abbruch)."""
+    """Konfliktverhalten für die Wiederherstellung.
+    Rückgabe: 'skip' | 'newer' | 'overwrite' | 'abbrechen'.
+    Escape/Schließen -> 'abbrechen' (zerstörungsfrei, echter Abbruch)."""
     return _themed_dialog(
         parent, "Wiederherstellen - vorhandene Dateien",
         "Wie sollen bereits vorhandene Dateien am Ziel behandelt werden?",
         buttons=[
-            ("Vorhandene ueberspringen (sicher)", "skip", None),
-            ("Nur neuere ueberschreiben", "newer", "gray40"),
-            ("Immer ueberschreiben", "overwrite", "gray30"),
+            ("Vorhandene überspringen (sicher)", "skip", None),
+            ("Nur neuere überschreiben", "newer", "gray40"),
+            ("Immer überschreiben", "overwrite", "gray30"),
             ("Abbrechen", "abbrechen", "gray30"),
         ],
         escape_value="abbrechen",
@@ -118,16 +118,16 @@ def ask_conflict_mode(parent) -> str:
 
 
 def ask_process_warning(parent, browser_display_name: str) -> str:
-    """Dialog mit drei Optionen, wenn der Ziel-/Quellbrowser noch laeuft
-    (PROJEKT.md §8.3/§9.5). Gibt 'beenden', 'weiter' oder 'abbrechen' zurueck."""
+    """Dialog mit drei Optionen, wenn der Ziel-/Quellbrowser noch läuft
+    (PROJEKT.md §8.3/§9.5). Gibt 'beenden', 'weiter' oder 'abbrechen' zurück."""
     message = (
-        f"{browser_display_name} laeuft gerade.\n\n"
-        "Manche Dateien koennten dadurch gesperrt sein und in der "
+        f"{browser_display_name} läuft gerade.\n\n"
+        "Manche Dateien könnten dadurch gesperrt sein und in der "
         "Sicherung/Wiederherstellung fehlen (die Sicherung bricht deswegen "
-        "aber nicht ab). Wie moechtest du fortfahren?"
+        "aber nicht ab). Wie möchtest du fortfahren?"
     )
     return _themed_dialog(
-        parent, "Browser laeuft", message,
+        parent, "Browser läuft", message,
         buttons=[
             (f"{browser_display_name} beenden", "beenden", None),
             ("Trotzdem fortfahren", "weiter", "gray40"),

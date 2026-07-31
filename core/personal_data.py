@@ -1,10 +1,10 @@
 """
-personal_data.py — Sichern/Wiederherstellen persoenlicher Windows-Ordner.
+personal_data.py — Sichern/Wiederherstellen persönlicher Windows-Ordner.
 
-GUI-unabhaengig und testbar. Erfasst Dokumente/Bilder/Musik/Videos/Desktop/
-Downloads ueber die Windows-Known-Folder-API (respektiert Umleitungen wie
-OneDrive/NextCloud), berechnet Groessen/freien Platz und sichert je Ordner
-wahlweise als ZIP oder 1:1-Kopie. Restore mit waehlbarem Konfliktverhalten.
+GUI-unabhängig und testbar. Erfasst Dokumente/Bilder/Musik/Videos/Desktop/
+Downloads über die Windows-Known-Folder-API (respektiert Umleitungen wie
+OneDrive/NextCloud), berechnet Größen/freien Platz und sichert je Ordner
+wahlweise als ZIP oder 1:1-Kopie. Restore mit wählbarem Konfliktverhalten.
 """
 
 import ctypes
@@ -45,9 +45,9 @@ class PersonalFolder:
 
 
 def _resolve_known_folder(guid_str: str) -> Path | None:
-    """Loest eine KNOWNFOLDERID (GUID-String) ueber SHGetKnownFolderPath zum
+    """Löst eine KNOWNFOLDERID (GUID-String) über SHGetKnownFolderPath zum
     echten Pfad auf — respektiert Umleitungen (OneDrive/NextCloud). Gibt None
-    zurueck, wenn die API nicht verfuegbar ist oder scheitert (Nicht-Windows
+    zurück, wenn die API nicht verfügbar ist oder scheitert (Nicht-Windows
     oder Fehler); der Aufrufer nutzt dann einen Fallback-Pfad."""
     if os.name != "nt":
         return None
@@ -80,7 +80,7 @@ def _resolve_known_folder(guid_str: str) -> Path | None:
 
 
 def detect_personal_folders() -> list[PersonalFolder]:
-    """Liefert die sechs persoenlichen Ordner mit echtem Pfad + Existenz-Flag."""
+    """Liefert die sechs persönlichen Ordner mit echtem Pfad + Existenz-Flag."""
     profile = Path(os.path.expanduser("~"))
     folders: list[PersonalFolder] = []
     for key, name, guid, fallback in _KNOWN_FOLDERS:
@@ -94,7 +94,7 @@ def detect_personal_folders() -> list[PersonalFolder]:
 
 
 def _format_bytes(n: int) -> str:
-    """Menschenlesbare Groesse (dezimal, 1000er-Schritte)."""
+    """Menschenlesbare Größe (dezimal, 1000er-Schritte)."""
     units = ["B", "KB", "MB", "GB", "TB"]
     value = float(n)
     for unit in units:
@@ -111,7 +111,7 @@ class FolderSize:
 
 
 def _iter_files(root) -> list[tuple[Path, str]]:
-    """(absoluter Pfad, relativer POSIX-Pfad) fuer alle Dateien unter root."""
+    """(absoluter Pfad, relativer POSIX-Pfad) für alle Dateien unter root."""
     root = Path(root)
     out: list[tuple[Path, str]] = []
     if not root.is_dir():
@@ -134,7 +134,7 @@ def _total_size(files) -> int:
 
 
 def folder_size(path) -> FolderSize:
-    """Gesamtgroesse + Dateizahl eines Ordners; unlesbare Unterordner werden
+    """Gesamtgröße + Dateizahl eines Ordners; unlesbare Unterordner werden
     gesammelt statt lautlos ignoriert (os.walk onerror)."""
     path = Path(path)
     total = 0
@@ -156,7 +156,7 @@ def folder_size(path) -> FolderSize:
 
 
 def free_space(path) -> int:
-    """Freier Platz am Ziel. Sucht den naechsten existierenden Elternpfad,
+    """Freier Platz am Ziel. Sucht den nächsten existierenden Elternpfad,
     falls das Ziel noch nicht angelegt wurde."""
     p = Path(path)
     while not p.exists():
@@ -167,14 +167,14 @@ def free_space(path) -> int:
 
 
 def cluster_size(path) -> int:
-    """Groesse einer Zuordnungseinheit (Cluster) des Ziel-Volumes in Bytes.
+    """Größe einer Zuordnungseinheit (Cluster) des Ziel-Volumes in Bytes.
 
-    Wichtig fuer die Speicherplatz-Pruefung: jede Datei belegt auf dem
-    Datentraeger mindestens einen ganzen Cluster. Bei USB-/exFAT-Platten sind
-    Cluster oft 128 KB+ gross - viele kleine Dateien verschwenden dadurch viel
-    Platz ("Slack"), sodass eine Kopie deutlich groesser wird als die rohe
+    Wichtig für die Speicherplatz-Prüfung: jede Datei belegt auf dem
+    Datenträger mindestens einen ganzen Cluster. Bei USB-/exFAT-Platten sind
+    Cluster oft 128 KB+ groß - viele kleine Dateien verschwenden dadurch viel
+    Platz ("Slack"), sodass eine Kopie deutlich größer wird als die rohe
     Dateisumme. Ermittelt wird der Wert per Windows-API GetDiskFreeSpaceW.
-    Faellt bei Fehlern/Nicht-Windows auf 4096 Bytes zurueck (typisches NTFS)."""
+    Fällt bei Fehlern/Nicht-Windows auf 4096 Bytes zurück (typisches NTFS)."""
     try:
         p = Path(path)
         while not p.exists():
@@ -202,14 +202,14 @@ def cluster_size(path) -> int:
 
 
 def disk_reservation(raw_bytes: int, file_count: int, cluster: int) -> int:
-    """Konservative Obergrenze fuer den tatsaechlichen Platzbedarf auf dem
-    Ziel-Datentraeger (inkl. Cluster-Verschnitt).
+    """Konservative Obergrenze für den tatsächlichen Platzbedarf auf dem
+    Ziel-Datenträger (inkl. Cluster-Verschnitt).
 
     Die reale Belegung ist ``sum(ceil(groesse_i / cluster) * cluster)``; ohne
-    die Einzelgroessen gilt garantiert ``<= raw_bytes + file_count * cluster``
-    (jede Datei rundet um hoechstens einen Cluster auf). Diese Obergrenze
-    unterschaetzt den Bedarf nie -> die Platte laeuft nicht mehr ueber.
-    Fuer den ZIP-Modus (eine Datei pro Ordner) ``file_count`` klein waehlen."""
+    die Einzelgrößen gilt garantiert ``<= raw_bytes + file_count * cluster``
+    (jede Datei rundet um höchstens einen Cluster auf). Diese Obergrenze
+    unterschätzt den Bedarf nie -> die Platte läuft nicht mehr über.
+    Für den ZIP-Modus (eine Datei pro Ordner) ``file_count`` klein wählen."""
     if cluster <= 0:
         cluster = 4096
     return raw_bytes + max(0, file_count) * cluster
@@ -250,9 +250,9 @@ def _build_manifest(folder, mode, file_count, total_bytes, skipped) -> dict:
 
 
 def backup_personal_folder(folder, dest_dir, mode="zip", progress_callback=None) -> PersonalBackupResult:
-    """Sichert einen persoenlichen Ordner als ZIP (data/... + Manifest im ZIP)
+    """Sichert einen persönlichen Ordner als ZIP (data/... + Manifest im ZIP)
     oder als 1:1-Kopie (Ordner mit data/ + backup_manifest.json daneben).
-    Gesperrte Dateien werden uebersprungen und in skipped gesammelt."""
+    Gesperrte Dateien werden übersprungen und in skipped gesammelt."""
     if mode not in ("zip", "copy"):
         raise ValueError(f"Unbekannter Modus: {mode!r}")
     if not folder.path.is_dir():
@@ -321,8 +321,8 @@ class PersonalRestoreResult:
     skipped_existing: int = 0
     overwritten: int = 0
     errors: list[str] = field(default_factory=list)
-    # Relative Pfade der uebersprungenen (bereits vorhandenen) Dateien -
-    # fuer die TXT-Liste nach dem Wiederherstellen.
+    # Relative Pfade der übersprungenen (bereits vorhandenen) Dateien -
+    # für die TXT-Liste nach dem Wiederherstellen.
     skipped_files: list[str] = field(default_factory=list)
 
 
@@ -336,23 +336,23 @@ def read_backup_manifest(source) -> dict:
     return json.loads((source / "backup_manifest.json").read_text(encoding="utf-8"))
 
 
-# Namenspraefixe gueltiger persoenlicher Datensicherungen (aktuell + abwaertskompatibel).
+# Namenspräfixe gültiger persönlicher Datensicherungen (aktuell + abwärtskompatibel).
 _BACKUP_ZIP_PREFIXES = ("umzug_data_", "browserbackup_data_")
 
 
 def _is_personal_manifest(manifest) -> bool:
-    """Prueft, ob ein Manifest zu einer persoenlichen Datensicherung gehoert."""
+    """Prüft, ob ein Manifest zu einer persönlichen Datensicherung gehört."""
     return isinstance(manifest, dict) and manifest.get("kind") == "personal_data"
 
 
 def find_personal_backups(root) -> list[tuple[Path, dict]]:
-    """Durchsucht ``root`` rekursiv nach gueltigen persoenlichen Datensicherungen.
+    """Durchsucht ``root`` rekursiv nach gültigen persönlichen Datensicherungen.
 
     Findet sowohl ZIP-Backups (Dateiname beginnt mit umzug_data_ bzw.
     browserbackup_data_ und Manifest ``kind == 'personal_data'``) als auch
     Kopie-Backups (Verzeichnis mit ``backup_manifest.json``). In ein erkanntes
     Kopie-Backup wird nicht weiter abgestiegen (dessen ``data/`` wird nicht
-    durchsucht). Defekte oder fremde Dateien werden still uebersprungen.
+    durchsucht). Defekte oder fremde Dateien werden still übersprungen.
 
     So funktioniert die Wahl des kompletten ``Umzug_<Datum>/`` genauso wie die
     direkte Wahl von ``PersoenlicheDaten/``.
@@ -366,7 +366,7 @@ def find_personal_backups(root) -> list[tuple[Path, dict]]:
 
     for dirpath, dirnames, filenames in os.walk(root):
         current = Path(dirpath)
-        # Kopie-Backup? -> Verzeichnis mit gueltigem Manifest; als ein Fund
+        # Kopie-Backup? -> Verzeichnis mit gültigem Manifest; als ein Fund
         # werten und nicht weiter absteigen (dessen data/ nicht durchsuchen).
         if "backup_manifest.json" in filenames:
             try:
@@ -377,8 +377,8 @@ def find_personal_backups(root) -> list[tuple[Path, dict]]:
                 found.append((current, manifest))
                 dirnames[:] = []  # nicht in dieses Backup hineinsteigen
                 continue
-        # ZIP-Backups in diesem Verzeichnis (Namenspraefix zuerst pruefen, damit
-        # nicht jedes fremde/grosse ZIP geoeffnet werden muss).
+        # ZIP-Backups in diesem Verzeichnis (Namenspräfix zuerst prüfen, damit
+        # nicht jedes fremde/große ZIP geöffnet werden muss).
         for name in filenames:
             lower = name.lower()
             if lower.endswith(".zip") and lower.startswith(_BACKUP_ZIP_PREFIXES):
@@ -404,7 +404,7 @@ def _zip_mtime(zinfo) -> float:
 
 
 def _should_write(dest_file: Path, src_mtime: float, conflict: str) -> str:
-    """Entscheidet fuer eine Datei: 'write' (Ziel fehlt), 'skip' oder 'overwrite'."""
+    """Entscheidet für eine Datei: 'write' (Ziel fehlt), 'skip' oder 'overwrite'."""
     if not dest_file.exists():
         return "write"
     if conflict == "overwrite":
@@ -419,7 +419,7 @@ def _should_write(dest_file: Path, src_mtime: float, conflict: str) -> str:
 
 def restore_personal_folder(source, dest, conflict="skip", progress_callback=None) -> PersonalRestoreResult:
     """Stellt ein Backup (ZIP oder Kopie-Ordner) nach dest wieder her.
-    conflict: 'skip' (Default, zerstoerungsfrei), 'overwrite', 'newer'."""
+    conflict: 'skip' (Default, zerstörungsfrei), 'overwrite', 'newer'."""
     source = Path(source)
     dest = Path(dest)
     manifest = read_backup_manifest(source)

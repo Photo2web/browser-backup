@@ -1,12 +1,12 @@
-"""Persistente Liste der zum Entfernen ausgewaehlten Programme.
+"""Persistente Liste der zum Entfernen ausgewählten Programme.
 
-Wird beim Start einer Deinstallation geschrieben und spaeter im
+Wird beim Start einer Deinstallation geschrieben und später im
 Neuinstallation-Screen als Quelle „Zuletzt entfernte Programme" gelesen, um die
 Software wieder zu installieren. Speicherort ist ``%APPDATA%\\Umzugstool\\
 entfernte_programme.json`` (pro Benutzer, dauerhaft auffindbar).
 
-Ehrlich: Die Liste enthaelt die *zum Entfernen ausgewaehlten* Programme, nicht
-den zurueckgemeldeten Erfolg des (eigenstaendig laufenden) Skripts.
+Ehrlich: Die Liste enthält die *zum Entfernen ausgewählten* Programme, nicht
+den zurückgemeldeten Erfolg des (eigenständig laufenden) Skripts.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from . import TOOL_VERSION
 
 
 def store_dir() -> Path:
-    """Verzeichnis fuer die Liste: %APPDATA%\\Umzugstool (Fallback: Home)."""
+    """Verzeichnis für die Liste: %APPDATA%\\Umzugstool (Fallback: Home)."""
     base = os.environ.get("APPDATA") or os.path.expanduser("~")
     return Path(base) / "Umzugstool"
 
@@ -61,7 +61,7 @@ def _sig(entry: dict) -> tuple[str, str]:
 
 def save_removed(programs, path: Path | None = None) -> Path:
     """Merged die Programme in die vorhandene Liste (Dedupe nach Name+Version)
-    und schreibt sie. Gibt den Pfad zurueck.
+    und schreibt sie. Gibt den Pfad zurück.
 
     Raises:
         OSError: wenn die Datei nicht geschrieben werden kann.
