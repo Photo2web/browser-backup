@@ -26,6 +26,7 @@ from core.installed_apps import (
     list_installed_apps,
 )
 from core.installplan import launch_install_script, write_install_plan
+from core.removed_list import load_removed
 
 from .dialogs import ask_yes_no, show_error, show_info
 from .worker import Worker
@@ -51,6 +52,8 @@ class ReinstallTab(ctk.CTkFrame):
         self.items: list[tuple[InstalledApp, ctk.BooleanVar]] = []
         # (EssentialApp, BooleanVar) je Grundausstattungs-Programm.
         self.essential_items: list[tuple[EssentialApp, ctk.BooleanVar]] = []
+        # (InstalledApp, BooleanVar) je zuvor entferntem Programm (Wiederherstellen).
+        self.removed_items: list[tuple[InstalledApp, ctk.BooleanVar]] = []
         self._loaded = False
         self._last_script_path: Path | None = None
         self._last_installable = 0
@@ -221,6 +224,10 @@ class ReinstallTab(ctk.CTkFrame):
             ctk.CTkLabel(self.list_frame, text="Keine Programme gefunden.",
                          text_color="gray70").pack(anchor="w", padx=8, pady=8)
 
+        # Zuvor entfernte Programme als Wiederherstell-Quelle anbieten (gegen die
+        # geladene winget-Liste abgeglichen: Treffer -> winget-faehig, Rest manuell).
+        self._add_removed_section(apps)
+
     def _on_load_error(self, exc: Exception):
         self._set_controls_enabled(True)
         self._clear_checklist()
@@ -233,7 +240,43 @@ class ReinstallTab(ctk.CTkFrame):
             msg = f"Programme konnten nicht geladen werden: {exc}"
         ctk.CTkLabel(self.list_frame, text=msg, text_color="gray70", wraplength=780,
                      justify="left").pack(anchor="w", padx=8, pady=8)
+        # Zuvor entfernte Programme trotzdem anzeigen (ohne winget-Abgleich -> manuell).
+        self._add_removed_section([])
         self._log(f"FEHLER beim Laden: {exc}")
+
+    def _add_removed_section(self, winget_apps: list[InstalledApp]):
+        """Zeigt zuvor entfernte Programme als Wiederherstell-Quelle. Treffer in
+        der winget-Liste werden winget-faehig (nutzen deren package_id), der Rest
+        ist 'manuell'. Ohne gespeicherte Liste passiert nichts."""
+        removed = load_removed()
+        if not removed:
+            return
+        installable_by_name = {
+            a.name.strip().lower(): a for a in winget_apps if a.winget_installable
+        }
+        ctk.CTkLabel(
+            self.list_frame, text="Zuletzt entfernte Programme (zum Wiederherstellen):",
+            text_color=_CATEGORY_TEXT_COLOR,
+        ).pack(anchor="w", padx=8, pady=(10, 2))
+        for entry in removed:
+            name = str(entry.get("name", "")).strip()
+            if not name:
+                continue
+            var = ctk.BooleanVar(value=False)
+            match = installable_by_name.get(name.lower())
+            if match is not None:
+                app = match
+                checkbox = ctk.CTkCheckBox(
+                    self.list_frame, text=f"{app.name}   [{app.package_id}]   (entfernt)",
+                    variable=var)
+            else:
+                app = InstalledApp(name=name, package_id=None,
+                                   version=entry.get("version"), source=None)
+                checkbox = ctk.CTkCheckBox(
+                    self.list_frame, text=f"{name}   (manuell — kein winget-Paket)",
+                    variable=var, text_color=_MANUAL_TEXT_COLOR)
+            checkbox.pack(anchor="w", padx=8, pady=1)
+            self.removed_items.append((app, var))
 
     def _add_row(self, app: InstalledApp):
         var = ctk.BooleanVar(value=False)
@@ -254,6 +297,7 @@ class ReinstallTab(ctk.CTkFrame):
         for child in self.list_frame.winfo_children():
             child.destroy()
         self.items = []
+        self.removed_items = []
 
     def _select_installable(self):
         for app, var in self.items:
@@ -289,9 +333,11 @@ class ReinstallTab(ctk.CTkFrame):
         self.log_box.configure(state="disabled")
 
     def _gather_selected(self) -> list[InstalledApp]:
-        """Auswahl aus installierten Programmen + Grundausstattung, nach
-        package_id dedupliziert (installierte haben Vorrang)."""
+        """Auswahl aus installierten Programmen + zuletzt entfernten +
+        Grundausstattung, nach package_id dedupliziert (installierte/entfernte
+        haben Vorrang vor der Grundausstattung)."""
         apps = [app for app, var in self.items if var.get()]
+        apps += [app for app, var in self.removed_items if var.get()]
         seen = {a.package_id for a in apps if a.package_id}
         for essential, var in self.essential_items:
             if var.get():

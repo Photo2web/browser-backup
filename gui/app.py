@@ -21,6 +21,7 @@ from .dialogs import show_info
 from .home_screen import HomeScreen
 from .reinstall_tab import ReinstallTab
 from .restore_mode import RestoreMode
+from .uninstall_screen import UninstallScreen
 
 
 class App(ctk.CTk):
@@ -64,11 +65,14 @@ class App(ctk.CTk):
             on_backup=lambda: self.show_mode("backup"),
             on_restore=lambda: self.show_mode("restore"),
             on_reinstall=lambda: self.show_mode("reinstall"),
+            on_uninstall=lambda: self.show_mode("uninstall"),
         )
         self.backup_mode = BackupMode(self.container, on_back=self.show_home)
         self.restore_mode = RestoreMode(self.container, on_back=self.show_home)
         self.reinstall_screen = ReinstallTab(self.container, on_back=self.show_home)
-        self._screens = [self.home, self.backup_mode, self.restore_mode, self.reinstall_screen]
+        self.uninstall_screen = UninstallScreen(self.container, on_back=self.show_home)
+        self._screens = [self.home, self.backup_mode, self.restore_mode,
+                         self.reinstall_screen, self.uninstall_screen]
         self.show_home()
 
     def show_home(self) -> None:
@@ -87,6 +91,9 @@ class App(ctk.CTk):
         elif name == "reinstall":
             self.reinstall_screen.pack(fill="both", expand=True)
             self.reinstall_screen.on_show()
+        elif name == "uninstall":
+            self.uninstall_screen.pack(fill="both", expand=True)
+            self.uninstall_screen.on_show()
 
     def _set_window_icon(self) -> None:
         """Setzt das Fenster-/Taskleisten-Icon. Funktioniert aus dem Quellcode

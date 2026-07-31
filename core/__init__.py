@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.3.3"  # v1.3.3: TXT-Liste uebersprungener Dateien beim Wiederherstellen
+TOOL_VERSION = "1.4.0"  # v1.4.0: Software entfernen (Registry-Liste, deinstallieren, Wiederherstell-Liste)

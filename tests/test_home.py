@@ -5,7 +5,7 @@ from gui.home_icons import draw_icon
 
 class DrawIconTests(unittest.TestCase):
     def test_known_kinds_return_rgba_image_of_size(self):
-        for kind in ("save", "restore", "reinstall"):
+        for kind in ("save", "restore", "reinstall", "remove"):
             img = draw_icon(kind, 48)
             self.assertEqual(img.size, (48, 48))
             self.assertEqual(img.mode, "RGBA")
@@ -28,6 +28,7 @@ class HomeScreenSmokeTests(unittest.TestCase):
         try:
             HomeScreen(root, on_backup=lambda: called.append("b"),
                        on_restore=lambda: called.append("r"),
-                       on_reinstall=lambda: called.append("i"))
+                       on_reinstall=lambda: called.append("i"),
+                       on_uninstall=lambda: called.append("u"))
         finally:
             root.destroy()

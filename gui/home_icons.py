@@ -47,7 +47,20 @@ def _reinstall(size: int) -> Image.Image:
     return img
 
 
-_DRAWERS = {"save": _save, "restore": _restore, "reinstall": _reinstall}
+def _remove(size: int) -> Image.Image:
+    img, d = _canvas(size)
+    # Muelltonne: Deckel + Griff + Koerper + Rillen
+    d.rectangle([size * 0.42, size * 0.14, size * 0.58, size * 0.22], fill=_ACCENT)   # Griff
+    d.rounded_rectangle([size * 0.22, size * 0.22, size * 0.78, size * 0.30],
+                        radius=size * 0.02, fill=_ACCENT)                              # Deckel
+    d.rounded_rectangle([size * 0.30, size * 0.32, size * 0.70, size * 0.84],
+                        radius=size * 0.05, fill=_ACCENT)                              # Koerper
+    for x in (0.40, 0.50, 0.60):
+        d.rectangle([size * x, size * 0.40, size * (x + 0.03), size * 0.76], fill=_LIGHT)
+    return img
+
+
+_DRAWERS = {"save": _save, "restore": _restore, "reinstall": _reinstall, "remove": _remove}
 
 
 def draw_icon(kind: str, size: int = 64) -> Image.Image:
