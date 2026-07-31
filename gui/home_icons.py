@@ -5,8 +5,10 @@ Bildmaterial noetig. Jede Zeichenfunktion liefert ein RGBA-Image; ctk_icon()
 verpackt es fuer die GUI.
 """
 
+import math
+
 import customtkinter as ctk
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # Icons liegen auf dem Lila-Verlauf der Startkacheln -> nahezu weisse Formen mit
 # kraeftig-lila Aussparungen fuer guten Kontrast.
@@ -148,6 +150,64 @@ def ctk_card(width: int, height: int, kind: str, title: str, subtitle: str,
              *, hover: bool = False) -> ctk.CTkImage:
     img = card_image(width, height, kind, title, subtitle, hover=hover)
     return ctk.CTkImage(light_image=img, dark_image=img, size=(width, height))
+
+
+# ---------------------------------------------------------------------------
+# Kreativer Lila-Hintergrund fuer den Startbildschirm
+# ---------------------------------------------------------------------------
+
+# Weiche Leucht-"Blobs": (x-Anteil, y-Anteil, Radius-Anteil, RGBA).
+_GLOW_BLOBS = (
+    (0.16, 0.20, 0.34, (150, 70, 230, 95)),    # Violett oben links
+    (0.86, 0.30, 0.32, (200, 60, 165, 85)),    # Magenta oben rechts
+    (0.72, 0.90, 0.38, (96, 62, 224, 80)),     # Blau-Violett unten
+    (0.30, 0.82, 0.30, (168, 58, 210, 70)),    # Purpur unten links
+)
+_BG_INNER = (60, 36, 104)   # helleres Lila (Zentrum)
+_BG_OUTER = (16, 9, 30)     # sehr dunkles Lila (Raender)
+
+
+def _radial_gradient(width: int, height: int, inner: tuple, outer: tuple,
+                     cx_frac: float, cy_frac: float) -> Image.Image:
+    """Radialer Verlauf inner->outer. Wird klein berechnet und hochskaliert
+    (schnell und trotzdem weich)."""
+    sw = max(2, width // 4)
+    sh = max(2, height // 4)
+    small = Image.new("RGB", (sw, sh))
+    px = small.load()
+    cx, cy = sw * cx_frac, sh * cy_frac
+    maxd = math.hypot(max(cx, sw - cx), max(cy, sh - cy)) or 1.0
+    for y in range(sh):
+        for x in range(sw):
+            t = min(1.0, math.hypot(x - cx, y - cy) / maxd)
+            px[x, y] = _lerp(inner, outer, t)
+    return small.resize((width, height), Image.BICUBIC)
+
+
+def home_background(width: int, height: int, title: str = "") -> Image.Image:
+    """Rendert den Startbildschirm-Hintergrund: dunkler Lila-Radialverlauf mit
+    weichen, leuchtenden Farb-Blobs (Violett/Magenta) und optionalem Titel."""
+    width = max(width, 2)
+    height = max(height, 2)
+    out = _radial_gradient(width, height, _BG_INNER, _BG_OUTER, 0.5, 0.28).convert("RGBA")
+
+    glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    gdraw = ImageDraw.Draw(glow)
+    reach = max(width, height)
+    for fx, fy, fr, color in _GLOW_BLOBS:
+        r = fr * reach
+        cx, cy = fx * width, fy * height
+        gdraw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
+    glow = glow.filter(ImageFilter.GaussianBlur(radius=reach * 0.07))
+    out.alpha_composite(glow)
+
+    if title:
+        draw = ImageDraw.Draw(out)
+        font = _load_font(max(16, round(height * 0.05)), bold=True)
+        tw = draw.textlength(title, font=font)
+        draw.text(((width - tw) / 2, height * 0.06), title,
+                  font=font, fill=(240, 235, 255, 255))
+    return out.convert("RGB")
 
 
 def _save(size: int) -> Image.Image:
