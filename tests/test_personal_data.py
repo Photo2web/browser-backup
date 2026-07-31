@@ -232,6 +232,18 @@ class RestoreTests(unittest.TestCase):
             self.assertEqual(res.skipped_existing, 1)
             self.assertEqual(res.restored, 1)                          # b.txt neu
 
+    def test_restore_records_skipped_file_paths(self):
+        # Fuer die TXT-Liste: uebersprungene Dateien werden namentlich gemerkt.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            copy_target = self._backup(root, "copy")
+            dest = root / "restore_here"
+            dest.mkdir()
+            (dest / "a.txt").write_bytes(b"KEEP")
+            res = pd.restore_personal_folder(copy_target, dest, conflict="skip")
+            self.assertIn("a.txt", res.skipped_files)
+            self.assertEqual(len(res.skipped_files), res.skipped_existing)
+
     def test_restore_overwrite_replaces(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

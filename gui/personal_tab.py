@@ -12,6 +12,7 @@ Worker-Thread (Poll per after()), damit die GUI nicht einfriert.
 
 import queue
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog
 
@@ -517,7 +518,42 @@ class PersonalRestoreFrame(_RunFrame):
                  f"Ueberschrieben: {overwritten}", f"Uebersprungen: {skipped}"]
         if errors:
             lines.append(f"Fehler: {errors}")
+        # TXT-Liste nur anlegen, wenn es etwas zu berichten gibt.
+        if skipped or errors:
+            report_path = self._write_skip_report(results)
+            if report_path is not None:
+                lines.append(f"\nListe uebersprungener Dateien:\n{report_path}")
         show_info(self, "Wiederherstellung abgeschlossen", "\n".join(lines))
+
+    def _write_skip_report(self, results) -> Path | None:
+        """Schreibt eine TXT mit den uebersprungenen Dateien (und Fehlern) des
+        Laufs auf den Desktop (ersatzweise ins Benutzerprofil). Gibt den Pfad
+        zurueck oder None, wenn nichts geschrieben werden konnte."""
+        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        out_lines = [f"Umzugstool - Wiederherstellung {ts}",
+                     "Uebersprungene (bereits vorhandene) Dateien und Fehler.", ""]
+        for r in results:
+            if not (r.skipped_files or r.errors):
+                continue
+            out_lines.append(f"[{r.folder_key or '?'}]  Ziel: {r.dest}")
+            if r.skipped_files:
+                out_lines.append(f"  Uebersprungen (bereits vorhanden): {len(r.skipped_files)}")
+                out_lines += [f"    - {p}" for p in r.skipped_files]
+            if r.errors:
+                out_lines.append(f"  Fehler: {len(r.errors)}")
+                out_lines += [f"    ! {e}" for e in r.errors]
+            out_lines.append("")
+
+        desktop = Path.home() / "Desktop"
+        out_dir = desktop if desktop.is_dir() else Path.home()
+        out_path = out_dir / f"Umzugstool_Wiederherstellung_{ts}.txt"
+        try:
+            out_path.write_text("\n".join(out_lines), encoding="utf-8")
+            self._log(f"Liste uebersprungener Dateien: {out_path}")
+            return out_path
+        except OSError as exc:
+            self._log(f"Konnte Liste uebersprungener Dateien nicht schreiben: {exc}")
+            return None
 
     def _on_run_error(self, exc: Exception):
         super()._on_run_error(exc)

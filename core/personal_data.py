@@ -321,6 +321,9 @@ class PersonalRestoreResult:
     skipped_existing: int = 0
     overwritten: int = 0
     errors: list[str] = field(default_factory=list)
+    # Relative Pfade der uebersprungenen (bereits vorhandenen) Dateien -
+    # fuer die TXT-Liste nach dem Wiederherstellen.
+    skipped_files: list[str] = field(default_factory=list)
 
 
 def read_backup_manifest(source) -> dict:
@@ -423,9 +426,10 @@ def restore_personal_folder(source, dest, conflict="skip", progress_callback=Non
     result = PersonalRestoreResult(folder_key=manifest.get("folder_key", ""), dest=dest)
     dest.mkdir(parents=True, exist_ok=True)
 
-    def _apply(action: str) -> None:
+    def _apply(action: str, rel: str) -> None:
         if action == "skip":
             result.skipped_existing += 1
+            result.skipped_files.append(rel)
         elif action == "overwrite":
             result.overwritten += 1
         else:
@@ -448,7 +452,7 @@ def restore_personal_folder(source, dest, conflict="skip", progress_callback=Non
                             shutil.copyfileobj(fh, target)
                         if src_mtime:
                             os.utime(out, (src_mtime, src_mtime))
-                    _apply(action)
+                    _apply(action, rel)
                 except OSError as exc:
                     result.errors.append(f"{rel} ({exc})")
                 if progress_callback:
@@ -467,7 +471,7 @@ def restore_personal_folder(source, dest, conflict="skip", progress_callback=Non
                 if action != "skip":
                     out.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(abs_path, out)
-                _apply(action)
+                _apply(action, rel)
             except OSError as exc:
                 result.errors.append(f"{rel} ({exc})")
             if progress_callback:

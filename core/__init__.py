@@ -7,4 +7,4 @@ Sicherung und Wiederherstellung sowie (ab v1.1) zur Programm-Neuinstallation
 aus einem Worker-Thread heraus aufgerufen. Siehe docs/PROJEKT.md.
 """
 
-TOOL_VERSION = "1.3.2"  # v1.3.2: Restore vom Ueberordner (Umzugsordner scannen, Funde ankreuzen)
+TOOL_VERSION = "1.3.3"  # v1.3.3: TXT-Liste uebersprungener Dateien beim Wiederherstellen
